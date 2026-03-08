@@ -224,7 +224,9 @@ function gameLoop(timestamp, player) {
             }
 
             player.update()
-            player.checkRespawn()
+            if (player.checkRespawn()) {
+                Sound.respawn()
+            }
             for (const bot of BotManager.getBots()) {
                 bot.player.update()
             }
@@ -977,7 +979,13 @@ function processFiring(player) {
     if (!Input.isFiring || player.dead) return
 
     const otherPlayers = BotManager.getOtherPlayers(player)
+    const couldFire = player.canFire()
     const result = player.fire()
+
+    if (!couldFire && player.ammo[player.currentWeapon] === 0) {
+        Sound.noAmmo()
+    }
+
     processFireResult(player, result, otherPlayers)
 }
 
@@ -999,6 +1007,7 @@ function processFireResult(player, result, otherPlayers) {
             applyHitscanShot(player, { ...shot, damage: pellet.damage }, otherPlayers, 'bullet', 2)
         }
     } else if (result?.type === 'gauntlet') {
+        Sound.gauntlet('active')
         const { x, y } = getWeaponTip(player, GAUNTLET_SPARK_OFFSET)
         Render.addGauntletSpark(x, y, {
             followPlayer: player,
@@ -1061,16 +1070,21 @@ function applyItemEffect(player, item) {
     switch (def.kind) {
         case 'health':
             player.giveHealth(def.amount, def.max)
+            Sound.health(def.amount)
             break
         case 'armor':
             player.giveArmor(def.amount)
+            if (def.amount < 50) Sound.shard()
+            else Sound.armor()
             break
         case 'quad':
             player.quadDamage = true
             player.quadTimer = PhysicsConstants.QUAD_DURATION
+            Sound.quad()
             break
         case 'weapon':
             player.giveWeapon(def.weaponId, PhysicsConstants.PICKUP_AMMO[def.weaponId] ?? 0)
+            Sound.wpPickup()
             break
     }
 }
@@ -1129,6 +1143,8 @@ function applyMeleeDamage(attacker, hit, targets) {
 
     const multiplier = attacker.quadDamage ? PhysicsConstants.QUAD_MULTIPLIER : 1
     target.takeDamage(hit.damage * multiplier, attacker.id)
+    // Alternate between r1 and r2 hit sounds
+    Sound.gauntlet(Math.random() < 0.5 ? 'hit1' : 'hit2')
 }
 
 function findMeleeTarget(attacker, hit, targets) {

@@ -364,6 +364,23 @@ function createSoundSystem() {
             rocketExplode: howl('/sounds/rocket_explode.wav', 0.7),
             grenadeExplode: howl('/sounds/grenade_explode.wav', 0.7),
             plasmaHit: howl('/sounds/plasma_hit.wav', 0.4),
+            hit: howl('/sounds/hit.wav', 0.8),
+            noAmmo: howl('/sounds/noammo.wav', 0.8),
+            respawn: howl('/sounds/respawn.wav', 0.9),
+            matchStart: howl('/sounds/fight.wav', 1.0),
+            gameEnd: howl('/sounds/gameend.wav', 1.0),
+            wpPickup: howl('/sounds/wpkup.wav', 0.7),
+            ammoPickup: howl('/sounds/ammopkup.wav', 0.7),
+            armor: howl('/sounds/armor.wav', 0.7),
+            shard: howl('/sounds/shard.wav', 0.6),
+            health5: howl('/sounds/health5.wav', 0.6),
+            health25: howl('/sounds/health25.wav', 0.6),
+            health50: howl('/sounds/health50.wav', 0.7),
+            health100: howl('/sounds/health100.wav', 0.8),
+            quad: howl('/sounds/quaddamage.wav', 1.0),
+            gauntletA: howl('/sounds/gauntl_a.wav', 0.7),
+            gauntletR1: howl('/sounds/gauntl_r1.wav', 0.7),
+            gauntletR2: howl('/sounds/gauntl_r2.wav', 0.7),
         }
 
         defaultJump = howl('/sounds/jump1.wav')
@@ -428,5 +445,28 @@ function createSoundSystem() {
         rocketExplode: () => isUnlocked() && weapons?.rocketExplode.play(),
         grenadeExplode: () => isUnlocked() && weapons?.grenadeExplode.play(),
         plasmaHit: () => isUnlocked() && weapons?.plasmaHit.play(),
+        hit: () => isUnlocked() && weapons?.hit.play(),
+        noAmmo: () => isUnlocked() && weapons?.noAmmo.play(),
+        respawn: () => isUnlocked() && weapons?.respawn.play(),
+        matchStart: () => isUnlocked() && weapons?.matchStart.play(),
+        gameEnd: () => isUnlocked() && weapons?.gameEnd.play(),
+        wpPickup: () => isUnlocked() && weapons?.wpPickup.play(),
+        ammoPickup: () => isUnlocked() && weapons?.ammoPickup.play(),
+        armor: () => isUnlocked() && weapons?.armor.play(),
+        shard: () => isUnlocked() && weapons?.shard.play(),
+        health: (amount) => {
+            if (!isUnlocked()) return
+            if (amount >= 100) weapons?.health100.play()
+            else if (amount >= 50) weapons?.health50.play()
+            else if (amount >= 25) weapons?.health25.play()
+            else weapons?.health5.play()
+        },
+        quad: () => isUnlocked() && weapons?.quad.play(),
+        gauntlet: (state) => {
+            if (!isUnlocked()) return
+            if (state === 'active') weapons?.gauntletA.play()
+            else if (state === 'hit1') weapons?.gauntletR1.play()
+            else if (state === 'hit2') weapons?.gauntletR2.play()
+        },
     }
 }
