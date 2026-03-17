@@ -8,5 +8,5 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = "0.2"
-physics_core = { path = "../physics_core" }
-binary_protocol = { path = "../binary_protocol", features = ["wasm"] }
+physics_core = { path = "../../crates/physics_core" }
+binary_protocol = { path = "../../crates/binary_protocol", features = ["wasm"] }

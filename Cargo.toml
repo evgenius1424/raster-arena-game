@@ -1,8 +1,8 @@
 [workspace]
 members = [
-  "apps/server",
+  "packages/game-wasm",
+  "packages/server",
   "crates/binary_protocol",
-  "crates/client_wasm",
   "crates/physics_core",
 ]
 resolver = "2"
@@ -10,3 +10,6 @@ resolver = "2"
 [workspace.package]
 edition = "2021"
 license = "MIT"
+
+[profile.release]
+opt-level = 3

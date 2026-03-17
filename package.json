@@ -2,18 +2,13 @@
   "name": "need-for-fun",
   "version": "0.0.0",
   "description": "Need For Fun - 2D arena deathmatch",
-  "type": "module",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "wasm:build": "wasm-pack build crates/client_wasm --target web --out-dir ../../apps/web/src/wasm/generated --out-name wasm",
-    "web:dev": "vite --config apps/web/vite.config.js",
-    "web:build": "vite build --config apps/web/vite.config.js",
-    "web:preview": "vite preview --config apps/web/vite.config.js --host 0.0.0.0 --port 4173",
-    "server:dev": "MAP_DIR=apps/web/public/maps cargo run --manifest-path apps/server/Cargo.toml",
-    "server:build": "cargo build --manifest-path apps/server/Cargo.toml --release",
-    "server:preview": "MAP_DIR=apps/web/public/maps cargo run --manifest-path apps/server/Cargo.toml --release",
-    "dev": "npm run wasm:build && (npm run web:dev & npm run server:dev & wait)",
-    "build": "npm run wasm:build && npm run web:build && npm run server:build",
-    "preview": "(npm run web:preview & npm run server:preview & wait)",
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
@@ -21,12 +16,7 @@
     "type": "git",
     "url": "https://github.com/evgenius1424/need-for-fun"
   },
-  "keywords": [
-    "nfk",
-    "quake3",
-    "2d",
-    "game"
-  ],
+  "keywords": ["nfk", "quake3", "2d", "game"],
   "author": "evgenius1424",
   "license": "MIT",
   "bugs": {
@@ -34,10 +24,6 @@
   },
   "devDependencies": {
     "prettier": "^3.8.0",
-    "vite": "^7.3.1"
-  },
-  "dependencies": {
-    "howler": "^2.2.4",
-    "pixi.js": "^7.4.2"
+    "turbo": "^2.5.4"
   }
 }

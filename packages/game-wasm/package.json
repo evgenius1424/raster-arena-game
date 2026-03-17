@@ -1,0 +1,10 @@
+{
+  "name": "@game/wasm",
+  "version": "0.0.1",
+  "private": true,
+  "main": "pkg/wasm.js",
+  "scripts": {
+    "build": "wasm-pack build --target web --out-dir pkg --out-name wasm"
+  },
+  "files": ["pkg"]
+}

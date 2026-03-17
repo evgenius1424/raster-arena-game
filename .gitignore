@@ -4,10 +4,13 @@ node_modules
 # Build output
 dist
 target
-apps/server/target
-crates/shared/physics_core/target
-crates/shared/physics_core/pkg
-AGENTS.md
+
+# WASM build output
+pkg
+**/pkg/
+
+# Turborepo
+.turbo
 
 # Logs
 *.log
