@@ -1,5 +1,5 @@
 {
   "installCommand": "npm install",
-  "buildCommand": "npm run web:build",
-  "outputDirectory": "dist/web"
+  "buildCommand": "turbo run build --filter=@game/client",
+  "outputDirectory": "apps/client/dist"
 }

@@ -5,9 +5,10 @@ node_modules
 dist
 target
 
-# WASM build output
-pkg
+# WASM build output - keep game-wasm pkg committed for Vercel (no Rust toolchain there)
 **/pkg/
+!packages/game-wasm/pkg
+!packages/game-wasm/pkg/**
 
 # Turborepo
 .turbo
