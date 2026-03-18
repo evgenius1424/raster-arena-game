@@ -1,5 +1,5 @@
 {
   "installCommand": "npm install",
-  "buildCommand": "turbo run build --filter=@game/client",
+  "buildCommand": "cd apps/client && npx vite build",
   "outputDirectory": "apps/client/dist"
 }
