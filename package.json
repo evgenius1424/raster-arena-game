@@ -3,13 +3,15 @@
   "version": "0.0.0",
   "description": "Need For Fun - 2D arena deathmatch",
   "private": true,
+  "packageManager": "npm@11.9.0",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "preview": "turbo run preview",
     "test": "turbo run test",
     "lint": "turbo run lint",
-    "format": "prettier --write .",
+    "format": "turbo run format",
     "format:check": "prettier --check ."
   },
   "repository": {

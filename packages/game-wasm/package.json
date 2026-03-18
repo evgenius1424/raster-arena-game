@@ -4,7 +4,8 @@
   "private": true,
   "main": "pkg/wasm.js",
   "scripts": {
-    "build": "wasm-pack build --target web --out-dir pkg --out-name wasm"
+    "build": "wasm-pack build --target web --out-dir pkg --out-name wasm",
+    "format": "cargo fmt -p client_wasm"
   },
   "files": ["pkg"]
 }

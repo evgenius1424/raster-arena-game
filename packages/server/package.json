@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "build": "cargo build -p nff-server --release"
+    "build": "cargo build -p nff-server --release",
+    "format": "cargo fmt -p nff-server"
   }
 }
