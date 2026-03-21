@@ -16,7 +16,7 @@ function LandingPage() {
                 2D Arena Deathmatch
             </p>
             <button
-                onClick={() => navigate({ to: '/game' })}
+                onClick={() => navigate({ to: '/lobby' })}
                 className="mt-4 px-12 py-4 bg-transparent border-2 border-white text-white text-lg font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors duration-200 cursor-pointer"
             >
                 Play

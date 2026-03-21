@@ -9,9 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LobbyRouteImport } from './routes/lobby'
 import { Route as GameRouteImport } from './routes/game'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RoomRoomIdRouteImport } from './routes/room/$roomId'
+import { Route as ApiSessionRouteImport } from './routes/api/session'
+import { Route as ApiRoomsIndexRouteImport } from './routes/api/rooms/index'
+import { Route as ApiRoomsStreamRouteImport } from './routes/api/rooms/stream'
+import { Route as ApiRoomsRoomIdIndexRouteImport } from './routes/api/rooms/$roomId/index'
+import { Route as ApiRoomsRoomIdStreamRouteImport } from './routes/api/rooms/$roomId/stream'
+import { Route as ApiRoomsRoomIdStartRouteImport } from './routes/api/rooms/$roomId/start'
+import { Route as ApiRoomsRoomIdLeaveRouteImport } from './routes/api/rooms/$roomId/leave'
+import { Route as ApiRoomsRoomIdJoinRouteImport } from './routes/api/rooms/$roomId/join'
 
+const LobbyRoute = LobbyRouteImport.update({
+  id: '/lobby',
+  path: '/lobby',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GameRoute = GameRouteImport.update({
   id: '/game',
   path: '/game',
@@ -22,35 +37,164 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RoomRoomIdRoute = RoomRoomIdRouteImport.update({
+  id: '/room/$roomId',
+  path: '/room/$roomId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSessionRoute = ApiSessionRouteImport.update({
+  id: '/api/session',
+  path: '/api/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRoomsIndexRoute = ApiRoomsIndexRouteImport.update({
+  id: '/api/rooms/',
+  path: '/api/rooms/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRoomsStreamRoute = ApiRoomsStreamRouteImport.update({
+  id: '/api/rooms/stream',
+  path: '/api/rooms/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRoomsRoomIdIndexRoute = ApiRoomsRoomIdIndexRouteImport.update({
+  id: '/api/rooms/$roomId/',
+  path: '/api/rooms/$roomId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRoomsRoomIdStreamRoute = ApiRoomsRoomIdStreamRouteImport.update({
+  id: '/api/rooms/$roomId/stream',
+  path: '/api/rooms/$roomId/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRoomsRoomIdStartRoute = ApiRoomsRoomIdStartRouteImport.update({
+  id: '/api/rooms/$roomId/start',
+  path: '/api/rooms/$roomId/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRoomsRoomIdLeaveRoute = ApiRoomsRoomIdLeaveRouteImport.update({
+  id: '/api/rooms/$roomId/leave',
+  path: '/api/rooms/$roomId/leave',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRoomsRoomIdJoinRoute = ApiRoomsRoomIdJoinRouteImport.update({
+  id: '/api/rooms/$roomId/join',
+  path: '/api/rooms/$roomId/join',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/game': typeof GameRoute
+  '/lobby': typeof LobbyRoute
+  '/api/session': typeof ApiSessionRoute
+  '/room/$roomId': typeof RoomRoomIdRoute
+  '/api/rooms/stream': typeof ApiRoomsStreamRoute
+  '/api/rooms/': typeof ApiRoomsIndexRoute
+  '/api/rooms/$roomId/join': typeof ApiRoomsRoomIdJoinRoute
+  '/api/rooms/$roomId/leave': typeof ApiRoomsRoomIdLeaveRoute
+  '/api/rooms/$roomId/start': typeof ApiRoomsRoomIdStartRoute
+  '/api/rooms/$roomId/stream': typeof ApiRoomsRoomIdStreamRoute
+  '/api/rooms/$roomId/': typeof ApiRoomsRoomIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/game': typeof GameRoute
+  '/lobby': typeof LobbyRoute
+  '/api/session': typeof ApiSessionRoute
+  '/room/$roomId': typeof RoomRoomIdRoute
+  '/api/rooms/stream': typeof ApiRoomsStreamRoute
+  '/api/rooms': typeof ApiRoomsIndexRoute
+  '/api/rooms/$roomId/join': typeof ApiRoomsRoomIdJoinRoute
+  '/api/rooms/$roomId/leave': typeof ApiRoomsRoomIdLeaveRoute
+  '/api/rooms/$roomId/start': typeof ApiRoomsRoomIdStartRoute
+  '/api/rooms/$roomId/stream': typeof ApiRoomsRoomIdStreamRoute
+  '/api/rooms/$roomId': typeof ApiRoomsRoomIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/game': typeof GameRoute
+  '/lobby': typeof LobbyRoute
+  '/api/session': typeof ApiSessionRoute
+  '/room/$roomId': typeof RoomRoomIdRoute
+  '/api/rooms/stream': typeof ApiRoomsStreamRoute
+  '/api/rooms/': typeof ApiRoomsIndexRoute
+  '/api/rooms/$roomId/join': typeof ApiRoomsRoomIdJoinRoute
+  '/api/rooms/$roomId/leave': typeof ApiRoomsRoomIdLeaveRoute
+  '/api/rooms/$roomId/start': typeof ApiRoomsRoomIdStartRoute
+  '/api/rooms/$roomId/stream': typeof ApiRoomsRoomIdStreamRoute
+  '/api/rooms/$roomId/': typeof ApiRoomsRoomIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/game'
+  fullPaths:
+    | '/'
+    | '/game'
+    | '/lobby'
+    | '/api/session'
+    | '/room/$roomId'
+    | '/api/rooms/stream'
+    | '/api/rooms/'
+    | '/api/rooms/$roomId/join'
+    | '/api/rooms/$roomId/leave'
+    | '/api/rooms/$roomId/start'
+    | '/api/rooms/$roomId/stream'
+    | '/api/rooms/$roomId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/game'
-  id: '__root__' | '/' | '/game'
+  to:
+    | '/'
+    | '/game'
+    | '/lobby'
+    | '/api/session'
+    | '/room/$roomId'
+    | '/api/rooms/stream'
+    | '/api/rooms'
+    | '/api/rooms/$roomId/join'
+    | '/api/rooms/$roomId/leave'
+    | '/api/rooms/$roomId/start'
+    | '/api/rooms/$roomId/stream'
+    | '/api/rooms/$roomId'
+  id:
+    | '__root__'
+    | '/'
+    | '/game'
+    | '/lobby'
+    | '/api/session'
+    | '/room/$roomId'
+    | '/api/rooms/stream'
+    | '/api/rooms/'
+    | '/api/rooms/$roomId/join'
+    | '/api/rooms/$roomId/leave'
+    | '/api/rooms/$roomId/start'
+    | '/api/rooms/$roomId/stream'
+    | '/api/rooms/$roomId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GameRoute: typeof GameRoute
+  LobbyRoute: typeof LobbyRoute
+  ApiSessionRoute: typeof ApiSessionRoute
+  RoomRoomIdRoute: typeof RoomRoomIdRoute
+  ApiRoomsStreamRoute: typeof ApiRoomsStreamRoute
+  ApiRoomsIndexRoute: typeof ApiRoomsIndexRoute
+  ApiRoomsRoomIdJoinRoute: typeof ApiRoomsRoomIdJoinRoute
+  ApiRoomsRoomIdLeaveRoute: typeof ApiRoomsRoomIdLeaveRoute
+  ApiRoomsRoomIdStartRoute: typeof ApiRoomsRoomIdStartRoute
+  ApiRoomsRoomIdStreamRoute: typeof ApiRoomsRoomIdStreamRoute
+  ApiRoomsRoomIdIndexRoute: typeof ApiRoomsRoomIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/lobby': {
+      id: '/lobby'
+      path: '/lobby'
+      fullPath: '/lobby'
+      preLoaderRoute: typeof LobbyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/game': {
       id: '/game'
       path: '/game'
@@ -65,12 +209,85 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/room/$roomId': {
+      id: '/room/$roomId'
+      path: '/room/$roomId'
+      fullPath: '/room/$roomId'
+      preLoaderRoute: typeof RoomRoomIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/session': {
+      id: '/api/session'
+      path: '/api/session'
+      fullPath: '/api/session'
+      preLoaderRoute: typeof ApiSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rooms/': {
+      id: '/api/rooms/'
+      path: '/api/rooms'
+      fullPath: '/api/rooms/'
+      preLoaderRoute: typeof ApiRoomsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rooms/stream': {
+      id: '/api/rooms/stream'
+      path: '/api/rooms/stream'
+      fullPath: '/api/rooms/stream'
+      preLoaderRoute: typeof ApiRoomsStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rooms/$roomId/': {
+      id: '/api/rooms/$roomId/'
+      path: '/api/rooms/$roomId'
+      fullPath: '/api/rooms/$roomId/'
+      preLoaderRoute: typeof ApiRoomsRoomIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rooms/$roomId/stream': {
+      id: '/api/rooms/$roomId/stream'
+      path: '/api/rooms/$roomId/stream'
+      fullPath: '/api/rooms/$roomId/stream'
+      preLoaderRoute: typeof ApiRoomsRoomIdStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rooms/$roomId/start': {
+      id: '/api/rooms/$roomId/start'
+      path: '/api/rooms/$roomId/start'
+      fullPath: '/api/rooms/$roomId/start'
+      preLoaderRoute: typeof ApiRoomsRoomIdStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rooms/$roomId/leave': {
+      id: '/api/rooms/$roomId/leave'
+      path: '/api/rooms/$roomId/leave'
+      fullPath: '/api/rooms/$roomId/leave'
+      preLoaderRoute: typeof ApiRoomsRoomIdLeaveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rooms/$roomId/join': {
+      id: '/api/rooms/$roomId/join'
+      path: '/api/rooms/$roomId/join'
+      fullPath: '/api/rooms/$roomId/join'
+      preLoaderRoute: typeof ApiRoomsRoomIdJoinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GameRoute: GameRoute,
+  LobbyRoute: LobbyRoute,
+  ApiSessionRoute: ApiSessionRoute,
+  RoomRoomIdRoute: RoomRoomIdRoute,
+  ApiRoomsStreamRoute: ApiRoomsStreamRoute,
+  ApiRoomsIndexRoute: ApiRoomsIndexRoute,
+  ApiRoomsRoomIdJoinRoute: ApiRoomsRoomIdJoinRoute,
+  ApiRoomsRoomIdLeaveRoute: ApiRoomsRoomIdLeaveRoute,
+  ApiRoomsRoomIdStartRoute: ApiRoomsRoomIdStartRoute,
+  ApiRoomsRoomIdStreamRoute: ApiRoomsRoomIdStreamRoute,
+  ApiRoomsRoomIdIndexRoute: ApiRoomsRoomIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
