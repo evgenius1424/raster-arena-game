@@ -1,1 +1,3 @@
 apps/client/src/wasm/generated/
+.tanstack/
+*.timestamp_*.js

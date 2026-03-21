@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* Applied to <body> when on /game route */
+body.game-active {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #000;
+    height: 100%;
+    cursor: none;
+}
+
+#game {
+    width: 100%;
+    height: 100%;
+}
+
+#game canvas {
+    cursor: none;
+}
+
+#console {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 360px;
+    transform: translateY(-100%);
+    transition: transform 0.2s ease-out;
+    background: rgba(30, 30, 30, 0.95);
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    color: #e0e0e0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+#console.open {
+    transform: translateY(0);
+}
+
+#console-content {
+    flex: 1;
+    padding: 12px;
+    overflow-y: auto;
+    line-height: 1.5;
+}
+
+#console-content strong {
+    color: #7cb7ff;
+}
+
+#console-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    border-top: 1px solid #444;
+    background: rgba(20, 20, 20, 0.9);
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+}
+
+#console-input::placeholder {
+    color: #666;
+}
