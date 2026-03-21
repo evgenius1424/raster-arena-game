@@ -505,19 +505,6 @@ async fn handle_rtc_socket_inner(state: Arc<AppState>, socket: WebSocket) {
         Err(_) => return,
     };
     let (pc_closed_tx, mut pc_closed_rx) = mpsc::channel::<()>(1);
-    peer_connection.on_peer_connection_state_change(Box::new(move |state| {
-        let pc_closed_tx2 = pc_closed_tx.clone();
-        Box::pin(async move {
-            if matches!(
-                state,
-                RTCPeerConnectionState::Disconnected
-                    | RTCPeerConnectionState::Failed
-                    | RTCPeerConnectionState::Closed
-            ) {
-                let _ = pc_closed_tx2.try_send(());
-            }
-        })
-    }));
 
     let (game_outbound_tx, game_outbound_rx) = mpsc::channel::<Bytes>(OUTBOUND_CHANNEL_CAPACITY);
     let game_outbound_rx = Arc::new(Mutex::new(Some(game_outbound_rx)));
@@ -554,6 +541,18 @@ async fn handle_rtc_socket_inner(state: Arc<AppState>, socket: WebSocket) {
             room.leave(player_id);
         }
     });
+
+    peer_connection.on_peer_connection_state_change(Box::new(move |state| {
+        let pc_closed_tx2 = pc_closed_tx.clone();
+        Box::pin(async move {
+            if matches!(
+                state,
+                RTCPeerConnectionState::Failed | RTCPeerConnectionState::Closed
+            ) {
+                let _ = pc_closed_tx2.try_send(());
+            }
+        })
+    }));
 
     let max_message_bytes = state.max_message_bytes;
     let game_outbound_rx_for_dc = Arc::clone(&game_outbound_rx);
@@ -682,7 +681,6 @@ async fn handle_client_msg(
         ClientMsg::JoinRoom { room_id, map } => {
             let room_ref = room_id.unwrap_or_else(|| DEFAULT_ROOM_ID.to_string());
             let map_name = map.unwrap_or_else(|| DEFAULT_MAP_NAME.to_string());
-
             let Some(game_map) = load_map(&state.map_dir, &map_name) else {
                 warn!(
                     player_id = player_id.0,

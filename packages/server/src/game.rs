@@ -4,15 +4,14 @@ use crate::binary::EffectEvent;
 use crate::constants::{
     ARMOR_ABSORPTION, DAMAGE, DEFAULT_AMMO, FIRE_RATE, GAUNTLET_PLAYER_RADIUS, GAUNTLET_RANGE,
     GRENADE_HIT_GRACE, HITSCAN_AABB_PADDING, MACHINE_RANGE, MAX_ARMOR, MAX_HEALTH, MEGA_HEALTH,
-    PICKUP_AMMO, PICKUP_RADIUS, PLAYER_HALF_H, PLAYER_HITBOX_BOTTOM, PLAYER_HITBOX_HALF_W,
-    PLAYER_HITBOX_TOP_CROUCH, PLAYER_HITBOX_TOP_STAND, PROJECTILE_AABB_RADIUS_SCALE, QUAD_DURATION,
+    PICKUP_AMMO, PICKUP_RADIUS, PLAYER_HALF_H, PROJECTILE_AABB_RADIUS_SCALE, QUAD_DURATION,
     QUAD_MULTIPLIER, RESPAWN_TIME, SELF_DAMAGE_REDUCTION, SELF_HIT_GRACE, SHOTGUN_BONUS_BASE,
     SHOTGUN_BONUS_MAX, SHOTGUN_PELLETS, SHOTGUN_RANGE, SHOTGUN_SPREAD, SPAWN_OFFSET_X,
     SPAWN_PROTECTION, TILE_H, TILE_W, WEAPON_ORIGIN_CROUCH_LIFT, WEAPON_PUSH,
 };
 use crate::map::GameMap;
 use crate::physics::PlayerState;
-use physics_core::types::Aabb;
+use physics_core::{player_hitbox, segment_aabb_t};
 use smallvec::SmallVec;
 
 pub use physics_core::projectile::{Explosion, Projectile, ProjectileKind};
@@ -656,7 +655,7 @@ fn find_hitscan_impact(
             continue;
         }
         // Keep a little width on hitscan traces for gameplay feel after moving off radial tests.
-        let box_ = expand_aabb(player_hitbox(target), HITSCAN_AABB_PADDING);
+        let box_ = player_hitbox(target.x, target.y, target.crouch, HITSCAN_AABB_PADDING);
         let Some(t) = segment_aabb_t(start_x, start_y, end_x, end_y, box_) else {
             continue;
         };
@@ -729,8 +728,10 @@ fn find_melee_target(
 }
 
 fn check_player_collision(player: &PlayerState, proj: &Projectile) -> bool {
-    let box_ = expand_aabb(
-        player_hitbox(player),
+    let box_ = player_hitbox(
+        player.x,
+        player.y,
+        player.crouch,
         proj.kind.hit_radius() * PROJECTILE_AABB_RADIUS_SCALE,
     );
     proj.x >= box_.min_x && proj.x <= box_.max_x && proj.y >= box_.min_y && proj.y <= box_.max_y
@@ -746,62 +747,3 @@ fn explode(proj: &mut Projectile, explosions: &mut Vec<Explosion>) {
     });
 }
 
-fn player_hitbox(player: &PlayerState) -> Aabb {
-    let top = if player.crouch {
-        PLAYER_HITBOX_TOP_CROUCH
-    } else {
-        PLAYER_HITBOX_TOP_STAND
-    };
-    Aabb {
-        min_x: player.x - PLAYER_HITBOX_HALF_W,
-        max_x: player.x + PLAYER_HITBOX_HALF_W,
-        min_y: player.y - top,
-        max_y: player.y + PLAYER_HITBOX_BOTTOM,
-    }
-}
-
-fn expand_aabb(aabb: Aabb, padding: f32) -> Aabb {
-    Aabb {
-        min_x: aabb.min_x - padding,
-        max_x: aabb.max_x + padding,
-        min_y: aabb.min_y - padding,
-        max_y: aabb.max_y + padding,
-    }
-}
-
-fn segment_aabb_t(x0: f32, y0: f32, x1: f32, y1: f32, aabb: Aabb) -> Option<f32> {
-    let dx = x1 - x0;
-    let dy = y1 - y0;
-    let mut t_min = 0.0_f32;
-    let mut t_max = 1.0_f32;
-
-    if !clip_axis(x0, dx, aabb.min_x, aabb.max_x, &mut t_min, &mut t_max) {
-        return None;
-    }
-    if !clip_axis(y0, dy, aabb.min_y, aabb.max_y, &mut t_min, &mut t_max) {
-        return None;
-    }
-    Some(t_min.clamp(0.0, 1.0))
-}
-
-fn clip_axis(
-    origin: f32,
-    delta: f32,
-    min: f32,
-    max: f32,
-    t_min: &mut f32,
-    t_max: &mut f32,
-) -> bool {
-    if delta.abs() < f32::EPSILON {
-        return origin >= min && origin <= max;
-    }
-    let inv = 1.0 / delta;
-    let mut t1 = (min - origin) * inv;
-    let mut t2 = (max - origin) * inv;
-    if t1 > t2 {
-        std::mem::swap(&mut t1, &mut t2);
-    }
-    *t_min = (*t_min).max(t1);
-    *t_max = (*t_max).min(t2);
-    *t_min <= *t_max
-}

@@ -374,7 +374,7 @@ export class NetworkClient {
 
             this.peerConnection.addEventListener('connectionstatechange', () => {
                 const state = this.peerConnection?.connectionState
-                if (state === 'failed' || state === 'closed' || state === 'disconnected') {
+                if (state === 'failed' || state === 'closed') {
                     this.handleTransportClosed()
                 }
             })

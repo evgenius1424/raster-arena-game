@@ -1045,6 +1045,37 @@ export function wasm_encode_ping(client_time_ms) {
     return v1;
 }
 
+/**
+ * Returns [min_x, max_x, min_y, max_y] of the player hitbox with optional padding.
+ * @param {number} x
+ * @param {number} y
+ * @param {boolean} crouch
+ * @param {number} padding
+ * @param {Float32Array} out
+ */
+export function wasm_player_hitbox(x, y, crouch, padding, out) {
+    var ptr0 = passArrayF32ToWasm0(out, wasm.__wbindgen_malloc);
+    var len0 = WASM_VECTOR_LEN;
+    wasm.wasm_player_hitbox(x, y, crouch, padding, ptr0, len0, out);
+}
+
+/**
+ * Segment vs AABB intersection. Returns t in [0,1] or -1.0 if no hit.
+ * @param {number} x0
+ * @param {number} y0
+ * @param {number} x1
+ * @param {number} y1
+ * @param {number} min_x
+ * @param {number} max_x
+ * @param {number} min_y
+ * @param {number} max_y
+ * @returns {number}
+ */
+export function wasm_segment_aabb_t(x0, y0, x1, y1, min_x, max_x, min_y, max_y) {
+    const ret = wasm.wasm_segment_aabb_t(x0, y0, x1, y1, min_x, max_x, min_y, max_y);
+    return ret;
+}
+
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,

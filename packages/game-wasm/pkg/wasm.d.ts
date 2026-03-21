@@ -233,6 +233,16 @@ export function wasm_encode_join_room(room_id: string, map: string): Uint8Array;
 
 export function wasm_encode_ping(client_time_ms: bigint): Uint8Array;
 
+/**
+ * Returns [min_x, max_x, min_y, max_y] of the player hitbox with optional padding.
+ */
+export function wasm_player_hitbox(x: number, y: number, crouch: boolean, padding: number, out: Float32Array): void;
+
+/**
+ * Segment vs AABB intersection. Returns t in [0,1] or -1.0 if no hit.
+ */
+export function wasm_segment_aabb_t(x0: number, y0: number, x1: number, y1: number, min_x: number, max_x: number, min_y: number, max_y: number): number;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -297,6 +307,8 @@ export interface InitOutput {
     readonly get_weapon_push: (a: number) => number;
     readonly wasm_apply_knockback: (a: number, b: number, c: number, d: number, e: bigint) => number;
     readonly wasm_apply_knockback_scaled: (a: number, b: number, c: number, d: number, e: bigint, f: number) => number;
+    readonly wasm_player_hitbox: (a: number, b: number, c: number, d: number, e: number, f: number, g: any) => void;
+    readonly wasm_segment_aabb_t: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => number;
     readonly wasmmap_new: (a: number, b: number) => number;
     readonly wasmmap_upload_bricks: (a: number, b: number, c: number) => void;
     readonly wasmphysicskernel_step_player: (a: number, b: number, c: number, d: number) => void;

@@ -1,6 +1,6 @@
 import { Sound } from '../core/helpers'
 import { Physics, PhysicsConstants } from './physics'
-import { getPlayerHitbox } from './hitbox'
+import { getPlayerHitbox } from './collision'
 
 const EXPLODE_SOUND = {
     rocket: Sound.rocketExplode,

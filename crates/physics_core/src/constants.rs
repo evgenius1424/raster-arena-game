@@ -10,12 +10,10 @@ pub const PLAYER_HALF_H: f32 = 24.0;
 pub const PLAYER_CROUCH_HALF_W: f32 = 8.0;
 pub const PLAYER_CROUCH_HALF_H: f32 = 8.0;
 pub const WEAPON_ORIGIN_CROUCH_LIFT: f32 = 4.0;
-// Canonical player combat hitbox. Keep JS in sync via WASM exports (apps/web/src/game/hitbox.js).
 pub const PLAYER_HITBOX_HALF_W: f32 = 12.0;
 pub const PLAYER_HITBOX_TOP_STAND: f32 = 24.0;
 pub const PLAYER_HITBOX_TOP_CROUCH: f32 = 8.0;
 pub const PLAYER_HITBOX_BOTTOM: f32 = 22.0;
-// Small gameplay padding to preserve legacy feel after switching from radial hitscan checks.
 pub const HITSCAN_AABB_PADDING: f32 = 2.0;
 
 pub const PLAYER_MAX_VELOCITY_X: f32 = 3.0;
@@ -51,7 +49,6 @@ pub const SPAWN_PROTECTION: i32 = 120;
 pub const PROJECTILE_GRAVITY: f32 = 0.05;
 pub const GRENADE_FUSE: i32 = 100;
 pub const ROCKET_LIFETIME_TICKS: i32 = 750;
-// BFG currently matches rocket lifetime; kept separate to allow per-weapon tuning later.
 pub const BFG_LIFETIME_TICKS: i32 = 750;
 pub const GRENADE_MIN_VELOCITY: f32 = 0.5;
 pub const BOUNDS_MARGIN: f32 = 100.0;

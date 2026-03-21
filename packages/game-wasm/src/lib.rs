@@ -797,3 +797,31 @@ pub fn get_respawn_time() -> i32 {
 pub fn get_spawn_protection() -> i32 {
     constants::SPAWN_PROTECTION
 }
+
+/// Returns [min_x, max_x, min_y, max_y] of the player hitbox with optional padding.
+#[wasm_bindgen]
+pub fn wasm_player_hitbox(x: f32, y: f32, crouch: bool, padding: f32, out: &mut [f32]) {
+    let aabb = physics_core::player_hitbox(x, y, crouch, padding);
+    if out.len() >= 4 {
+        out[0] = aabb.min_x;
+        out[1] = aabb.max_x;
+        out[2] = aabb.min_y;
+        out[3] = aabb.max_y;
+    }
+}
+
+/// Segment vs AABB intersection. Returns t in [0,1] or -1.0 if no hit.
+#[wasm_bindgen]
+pub fn wasm_segment_aabb_t(
+    x0: f32,
+    y0: f32,
+    x1: f32,
+    y1: f32,
+    min_x: f32,
+    max_x: f32,
+    min_y: f32,
+    max_y: f32,
+) -> f32 {
+    let aabb = physics_core::types::Aabb { min_x, max_x, min_y, max_y };
+    physics_core::segment_aabb_t(x0, y0, x1, y1, aabb).unwrap_or(-1.0)
+}

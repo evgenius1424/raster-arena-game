@@ -12,3 +12,4 @@ pub mod weapon;
 pub use explosion::apply_knockback;
 pub use projectile::{calculate_bounds, step_projectile, Explosion, Projectile, ProjectileKind};
 pub use step::step_player;
+pub use types::{expand_aabb, player_hitbox, segment_aabb_t};

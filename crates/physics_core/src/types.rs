@@ -181,3 +181,61 @@ pub fn clamp(value: f32, min: f32, max: f32) -> f32 {
         value
     }
 }
+
+pub fn player_hitbox(x: f32, y: f32, crouch: bool, padding: f32) -> Aabb {
+    use crate::constants::{
+        PLAYER_HITBOX_BOTTOM, PLAYER_HITBOX_HALF_W, PLAYER_HITBOX_TOP_CROUCH,
+        PLAYER_HITBOX_TOP_STAND,
+    };
+    let half_w = PLAYER_HITBOX_HALF_W + padding;
+    let top = if crouch {
+        PLAYER_HITBOX_TOP_CROUCH
+    } else {
+        PLAYER_HITBOX_TOP_STAND
+    } + padding;
+    let bottom = PLAYER_HITBOX_BOTTOM + padding;
+    Aabb {
+        min_x: x - half_w,
+        max_x: x + half_w,
+        min_y: y - top,
+        max_y: y + bottom,
+    }
+}
+
+pub fn expand_aabb(aabb: Aabb, padding: f32) -> Aabb {
+    Aabb {
+        min_x: aabb.min_x - padding,
+        max_x: aabb.max_x + padding,
+        min_y: aabb.min_y - padding,
+        max_y: aabb.max_y + padding,
+    }
+}
+
+fn clip_axis(origin: f32, delta: f32, min: f32, max: f32, t_min: &mut f32, t_max: &mut f32) -> bool {
+    if delta.abs() < f32::EPSILON {
+        return origin >= min && origin <= max;
+    }
+    let inv = 1.0 / delta;
+    let mut t1 = (min - origin) * inv;
+    let mut t2 = (max - origin) * inv;
+    if t1 > t2 {
+        std::mem::swap(&mut t1, &mut t2);
+    }
+    *t_min = (*t_min).max(t1);
+    *t_max = (*t_max).min(t2);
+    *t_min <= *t_max
+}
+
+pub fn segment_aabb_t(x0: f32, y0: f32, x1: f32, y1: f32, aabb: Aabb) -> Option<f32> {
+    let dx = x1 - x0;
+    let dy = y1 - y0;
+    let mut t_min = 0.0_f32;
+    let mut t_max = 1.0_f32;
+    if !clip_axis(x0, dx, aabb.min_x, aabb.max_x, &mut t_min, &mut t_max) {
+        return None;
+    }
+    if !clip_axis(y0, dy, aabb.min_y, aabb.max_y, &mut t_min, &mut t_max) {
+        return None;
+    }
+    Some(t_min.clamp(0.0, 1.0))
+}

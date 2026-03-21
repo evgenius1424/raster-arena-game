@@ -3,7 +3,7 @@ import { Input, Settings, Sound, WeaponId, Console } from '../core/helpers'
 import { Map } from '../game/map'
 import { Player } from '../game/player'
 import { Physics, PhysicsConstants } from '../game/physics'
-import { getPlayerHitbox, segmentAabbT } from '../game/hitbox'
+import { getPlayerHitbox, segmentAabbT } from '../game/collision'
 import { Render } from '../render'
 import { Projectiles } from '../game/projectiles'
 import { loadAssets, ensureModelLoaded } from '../render/assets'
@@ -329,7 +329,9 @@ function initNetwork() {
         onOpen: () => {
             BotManager.removeAllBots()
         },
-        onClose: () => {},
+        onClose: () => {
+            lastAppliedWorldSnapshotTick = -1
+        },
         onRoomState: async (room) => {
             await syncTickRateFromRoom(room)
             if (room?.map) {
