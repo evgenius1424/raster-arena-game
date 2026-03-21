@@ -5,18 +5,16 @@ import type { PublicRoom } from '../../lib/store.server'
 
 export const Route = createFileRoute('/room/$roomId')({
     loader: async ({ params }) => {
-        const [sessionData, roomData] = await Promise.all([
-            $getSession(),
-            $getRoom({ data: params.roomId }),
-        ])
-        return { sessionId: sessionData.sessionId, room: roomData.room, isHost: roomData.isHost }
+        const sessionData = await $getSession()
+        const roomData = await $getRoom({ data: params.roomId })
+        return { sessionId: sessionData.sessionId, room: roomData.room }
     },
     component: RoomPage,
 })
 
 function RoomPage() {
     const { params } = Route.useMatch()
-    const { sessionId, room: initialRoom, isHost } = Route.useLoaderData()
+    const { sessionId, room: initialRoom } = Route.useLoaderData()
     const navigate = useNavigate()
     const [room, setRoom] = useState<PublicRoom>(initialRoom)
     const [error, setError] = useState<string | null>(null)
@@ -33,7 +31,6 @@ function RoomPage() {
             }
             const updatedRoom: PublicRoom = data.room
             setRoom(updatedRoom)
-
             if (updatedRoom.status === 'in-game' && !navigatedRef.current) {
                 navigatedRef.current = true
                 navigate({ to: '/game', search: { roomId: params.roomId } })
@@ -43,6 +40,12 @@ function RoomPage() {
         return () => es.close()
     }, [params.roomId])
 
+    useEffect(() => {
+        const handleUnload = () => navigator.sendBeacon(`/api/rooms/${params.roomId}/leave`)
+        window.addEventListener('beforeunload', handleUnload)
+        return () => window.removeEventListener('beforeunload', handleUnload)
+    }, [params.roomId])
+
     async function startGame() {
         setError(null)
         try {
@@ -50,15 +53,10 @@ function RoomPage() {
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Failed to start game')
         }
-        // Navigation happens via SSE room:update
     }
 
     async function leaveRoom() {
-        try {
-            await $leaveRoom({ data: params.roomId })
-        } catch {
-            // ignore — navigate anyway
-        }
+        try { await $leaveRoom({ data: params.roomId }) } catch { /* ignore */ }
         navigate({ to: '/lobby' })
     }
 
@@ -69,9 +67,7 @@ function RoomPage() {
 
             <div className="w-full max-w-md mb-8">
                 <div className="flex justify-between text-xs uppercase tracking-widest text-gray-500 border-b border-gray-800 pb-2 mb-4">
-                    <span>
-                        Players ({room.playerCount}/{room.maxPlayers})
-                    </span>
+                    <span>Players ({room.playerCount}/{room.maxPlayers})</span>
                     <span className={room.status === 'in-game' ? 'text-yellow-500' : 'text-green-500'}>
                         {room.status}
                     </span>
@@ -79,19 +75,12 @@ function RoomPage() {
 
                 <ul className="space-y-2">
                     {room.players.map((player, i) => (
-                        <li
-                            key={player.joinedAt}
-                            className="flex items-center gap-3 py-2 border-b border-gray-900"
-                        >
+                        <li key={player.joinedAt} className="flex items-center gap-3 py-2 border-b border-gray-900">
                             <span className="w-10 text-xs">
-                                {i === 0 ? (
-                                    <span className="text-yellow-500 uppercase tracking-widest">Host</span>
-                                ) : null}
+                                {i === 0 && <span className="text-yellow-500 uppercase tracking-widest">Host</span>}
                             </span>
-                            <span className="text-sm">
-                                {player.nickname ?? (
-                                    <span className="text-gray-600">Anonymous</span>
-                                )}
+                            <span className={`text-sm ${player.isCurrentPlayer ? 'text-white' : 'text-gray-400'}`}>
+                                {player.nickname ?? <span className="text-gray-600">Anonymous</span>}
                             </span>
                         </li>
                     ))}
@@ -101,7 +90,7 @@ function RoomPage() {
             {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
             <div className="flex gap-4">
-                {isHost && room.status === 'lobby' && (
+                {room.isHost && room.status === 'lobby' && (
                     <button
                         onClick={startGame}
                         className="px-10 py-3 border-2 border-white text-white uppercase tracking-widest font-bold hover:bg-white hover:text-black transition-colors cursor-pointer"

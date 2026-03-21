@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
-import { $createRoom, $getSession, $joinRoom } from '../lib/serverFns'
+import { $createRoom, $getSession, $joinRoom, $updateNickname } from '../lib/serverFns'
 import type { PublicRoom } from '../lib/store.server'
 
 export const Route = createFileRoute('/lobby')({
@@ -35,12 +35,8 @@ function LobbyPage() {
     }, [])
 
     async function saveNickname() {
-        const res = await fetch('/api/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nickname }),
-        })
-        if (res.ok) setNicknameSaved(true)
+        await $updateNickname({ data: nickname })
+        setNicknameSaved(true)
     }
 
     async function createRoom() {

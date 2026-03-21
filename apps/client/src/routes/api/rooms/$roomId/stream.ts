@@ -14,10 +14,12 @@ export const Route = createFileRoute('/api/rooms/$roomId/stream')({
 
                 const roomId = params.roomId
 
+                const sessionId = session.sessionId
+
                 const stream = new ReadableStream<Uint8Array>({
                     start(controller) {
-                        controller.enqueue(encodeSSE('room:update', { room: toPublicRoom(room) }))
-                        const unsub = subscribeRoom(roomId, controller)
+                        controller.enqueue(encodeSSE('room:update', { room: toPublicRoom(room, sessionId) }))
+                        const unsub = subscribeRoom(roomId, controller, sessionId)
                         request.signal.addEventListener('abort', () => unsub())
                     },
                 })

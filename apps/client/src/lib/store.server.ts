@@ -17,67 +17,27 @@ export type PublicRoom = {
     playerCount: number
     maxPlayers: number
     status: 'lobby' | 'in-game'
-    players: Array<{ nickname?: string; joinedAt: number }>
+    isHost: boolean
+    players: Array<{ nickname?: string; joinedAt: number; isCurrentPlayer: boolean }>
 }
 
-const MAX_PLAYERS = parseInt(process.env['MAX_PLAYERS_PER_ROOM'] ?? '4', 10)
+// --- Public API ---
 
-// Data store
-const rooms = new Map<string, Room>()
-
-// SSE subscribers
-type Controller = ReadableStreamDefaultController<Uint8Array>
-const lobbySubscribers = new Set<Controller>()
-const roomSubscribers = new Map<string, Set<Controller>>()
-
-// --- SSE encoding ---
-
-export function encodeSSE(event: string, data: unknown): Uint8Array {
-    const frame = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
-    return new TextEncoder().encode(frame)
-}
-
-// --- Broadcasts ---
-
-function broadcastLobby(): void {
-    const payload = encodeSSE('rooms:update', { rooms: listRooms().map(toPublicRoom) })
-    for (const ctrl of lobbySubscribers) {
-        try {
-            ctrl.enqueue(payload)
-        } catch {
-            lobbySubscribers.delete(ctrl)
-        }
-    }
-}
-
-function broadcastRoom(roomId: string): void {
-    const room = rooms.get(roomId)
-    const subs = roomSubscribers.get(roomId)
-    if (!subs) return
-    const payload = encodeSSE('room:update', { room: room ? toPublicRoom(room) : null })
-    for (const ctrl of subs) {
-        try {
-            ctrl.enqueue(payload)
-        } catch {
-            subs.delete(ctrl)
-        }
-    }
-}
-
-// --- Public helpers ---
-
-export function toPublicRoom(room: Room): PublicRoom {
+export function toPublicRoom(room: Room, viewerSessionId?: string): PublicRoom {
     return {
         id: room.id,
         createdAt: room.createdAt,
         playerCount: room.players.length,
         maxPlayers: MAX_PLAYERS,
         status: room.status,
-        players: room.players.map((p) => ({ nickname: p.nickname, joinedAt: p.joinedAt })),
+        isHost: !!viewerSessionId && room.players[0]?.sessionId === viewerSessionId,
+        players: room.players.map((p) => ({
+            nickname: p.nickname,
+            joinedAt: p.joinedAt,
+            isCurrentPlayer: p.sessionId === viewerSessionId,
+        })),
     }
 }
-
-// --- Read ---
 
 export function listRooms(): Room[] {
     return Array.from(rooms.values())
@@ -87,7 +47,6 @@ export function getRoom(roomId: string): Room | undefined {
     return rooms.get(roomId)
 }
 
-// Find which room a session is in (if any)
 export function findSessionRoom(sessionId: string): Room | undefined {
     for (const room of rooms.values()) {
         if (room.players.some((p) => p.sessionId === sessionId)) return room
@@ -95,36 +54,23 @@ export function findSessionRoom(sessionId: string): Room | undefined {
     return undefined
 }
 
-// --- Write ---
-
 export function createRoom(host: Player): Room {
-    const room: Room = {
-        id: crypto.randomUUID(),
-        createdAt: Date.now(),
-        players: [host],
-        status: 'lobby',
-    }
+    const room: Room = { id: crypto.randomUUID(), createdAt: Date.now(), players: [host], status: 'lobby' }
     rooms.set(room.id, room)
     broadcastLobby()
     return room
 }
 
-export function joinRoom(
-    roomId: string,
-    player: Player,
-): Room | { error: string } {
+export function joinRoom(roomId: string, player: Player): Room | { error: string } {
     const room = rooms.get(roomId)
     if (!room) return { error: 'Room not found' }
     if (room.status !== 'lobby') return { error: 'Game already started' }
     if (room.players.length >= MAX_PLAYERS) return { error: 'Room is full' }
-
-    // Prevent joining a second room
     const existing = findSessionRoom(player.sessionId)
     if (existing) {
-        if (existing.id === roomId) return room // already in this room — idempotent
+        if (existing.id === roomId) return room
         return { error: 'Already in another room' }
     }
-
     room.players.push(player)
     broadcastRoom(roomId)
     broadcastLobby()
@@ -134,12 +80,9 @@ export function joinRoom(
 export function leaveRoom(roomId: string, sessionId: string): void {
     const room = rooms.get(roomId)
     if (!room) return
-
     room.players = room.players.filter((p) => p.sessionId !== sessionId)
-
     if (room.players.length === 0) {
         rooms.delete(roomId)
-        // Notify room subscribers that the room is gone, then clean up
         broadcastRoom(roomId)
         roomSubscribers.delete(roomId)
         broadcastLobby()
@@ -149,22 +92,16 @@ export function leaveRoom(roomId: string, sessionId: string): void {
     }
 }
 
-export function startRoom(
-    roomId: string,
-    sessionId: string,
-): Room | { error: string } {
+export function startRoom(roomId: string, sessionId: string): Room | { error: string } {
     const room = rooms.get(roomId)
     if (!room) return { error: 'Room not found' }
     if (room.players[0]?.sessionId !== sessionId) return { error: 'Only the host can start the game' }
-    if (room.status === 'in-game') return room // idempotent
-
+    if (room.status === 'in-game') return room
     room.status = 'in-game'
     broadcastRoom(roomId)
     broadcastLobby()
     return room
 }
-
-// --- SSE subscriptions ---
 
 export function subscribeLobby(ctrl: Controller): () => void {
     lobbySubscribers.add(ctrl)
@@ -174,14 +111,62 @@ export function subscribeLobby(ctrl: Controller): () => void {
     }
 }
 
-export function subscribeRoom(roomId: string, ctrl: Controller): () => void {
-    if (!roomSubscribers.has(roomId)) {
-        roomSubscribers.set(roomId, new Set())
-    }
-    roomSubscribers.get(roomId)!.add(ctrl)
+export function subscribeRoom(roomId: string, ctrl: Controller, sessionId: string): () => void {
+    if (!roomSubscribers.has(roomId)) roomSubscribers.set(roomId, new Map())
+    roomSubscribers.get(roomId)!.set(ctrl, sessionId)
     return () => {
-        const subs = roomSubscribers.get(roomId)
-        subs?.delete(ctrl)
+        roomSubscribers.get(roomId)?.delete(ctrl)
         try { ctrl.close() } catch { /* already closed */ }
     }
 }
+
+export function encodeSSE(event: string, data: unknown): Uint8Array {
+    return new TextEncoder().encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+}
+
+// --- Internals ---
+
+const MAX_PLAYERS = parseInt(process.env['MAX_PLAYERS_PER_ROOM'] ?? '4', 10)
+const LOBBY_STALE_MS = 30 * 60 * 1000
+const IN_GAME_STALE_MS = 2 * 60 * 60 * 1000
+
+type Controller = ReadableStreamDefaultController<Uint8Array>
+
+const rooms = new Map<string, Room>()
+const lobbySubscribers = new Set<Controller>()
+const roomSubscribers = new Map<string, Map<Controller, string>>()
+
+function broadcastLobby(): void {
+    const payload = encodeSSE('rooms:update', { rooms: listRooms().map((r) => toPublicRoom(r)) })
+    for (const ctrl of lobbySubscribers) {
+        try { ctrl.enqueue(payload) } catch { lobbySubscribers.delete(ctrl) }
+    }
+}
+
+function broadcastRoom(roomId: string): void {
+    const room = rooms.get(roomId)
+    const subs = roomSubscribers.get(roomId)
+    if (!subs) return
+    for (const [ctrl, sessionId] of subs) {
+        const payload = encodeSSE('room:update', { room: room ? toPublicRoom(room, sessionId) : null })
+        try { ctrl.enqueue(payload) } catch { subs.delete(ctrl) }
+    }
+}
+
+setInterval(() => {
+    const now = Date.now()
+    let changed = false
+    for (const [roomId, room] of rooms) {
+        const age = now - room.createdAt
+        if (
+            (room.status === 'lobby' && age > LOBBY_STALE_MS) ||
+            (room.status === 'in-game' && age > IN_GAME_STALE_MS)
+        ) {
+            rooms.delete(roomId)
+            broadcastRoom(roomId)
+            roomSubscribers.delete(roomId)
+            changed = true
+        }
+    }
+    if (changed) broadcastLobby()
+}, 60_000)
