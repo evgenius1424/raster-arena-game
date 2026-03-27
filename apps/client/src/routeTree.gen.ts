@@ -13,9 +13,6 @@ import { Route as LobbyRouteImport } from './routes/lobby'
 import { Route as GameRouteImport } from './routes/game'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RoomRoomIdRouteImport } from './routes/room/$roomId'
-import { Route as ApiRoomsStreamRouteImport } from './routes/api/rooms/stream'
-import { Route as ApiRoomsRoomIdStreamRouteImport } from './routes/api/rooms/$roomId/stream'
-import { Route as ApiRoomsRoomIdLeaveRouteImport } from './routes/api/rooms/$roomId/leave'
 
 const LobbyRoute = LobbyRouteImport.update({
   id: '/lobby',
@@ -37,39 +34,18 @@ const RoomRoomIdRoute = RoomRoomIdRouteImport.update({
   path: '/room/$roomId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiRoomsStreamRoute = ApiRoomsStreamRouteImport.update({
-  id: '/api/rooms/stream',
-  path: '/api/rooms/stream',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiRoomsRoomIdStreamRoute = ApiRoomsRoomIdStreamRouteImport.update({
-  id: '/api/rooms/$roomId/stream',
-  path: '/api/rooms/$roomId/stream',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiRoomsRoomIdLeaveRoute = ApiRoomsRoomIdLeaveRouteImport.update({
-  id: '/api/rooms/$roomId/leave',
-  path: '/api/rooms/$roomId/leave',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/game': typeof GameRoute
   '/lobby': typeof LobbyRoute
   '/room/$roomId': typeof RoomRoomIdRoute
-  '/api/rooms/stream': typeof ApiRoomsStreamRoute
-  '/api/rooms/$roomId/leave': typeof ApiRoomsRoomIdLeaveRoute
-  '/api/rooms/$roomId/stream': typeof ApiRoomsRoomIdStreamRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/game': typeof GameRoute
   '/lobby': typeof LobbyRoute
   '/room/$roomId': typeof RoomRoomIdRoute
-  '/api/rooms/stream': typeof ApiRoomsStreamRoute
-  '/api/rooms/$roomId/leave': typeof ApiRoomsRoomIdLeaveRoute
-  '/api/rooms/$roomId/stream': typeof ApiRoomsRoomIdStreamRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,38 +53,13 @@ export interface FileRoutesById {
   '/game': typeof GameRoute
   '/lobby': typeof LobbyRoute
   '/room/$roomId': typeof RoomRoomIdRoute
-  '/api/rooms/stream': typeof ApiRoomsStreamRoute
-  '/api/rooms/$roomId/leave': typeof ApiRoomsRoomIdLeaveRoute
-  '/api/rooms/$roomId/stream': typeof ApiRoomsRoomIdStreamRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/game'
-    | '/lobby'
-    | '/room/$roomId'
-    | '/api/rooms/stream'
-    | '/api/rooms/$roomId/leave'
-    | '/api/rooms/$roomId/stream'
+  fullPaths: '/' | '/game' | '/lobby' | '/room/$roomId'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/game'
-    | '/lobby'
-    | '/room/$roomId'
-    | '/api/rooms/stream'
-    | '/api/rooms/$roomId/leave'
-    | '/api/rooms/$roomId/stream'
-  id:
-    | '__root__'
-    | '/'
-    | '/game'
-    | '/lobby'
-    | '/room/$roomId'
-    | '/api/rooms/stream'
-    | '/api/rooms/$roomId/leave'
-    | '/api/rooms/$roomId/stream'
+  to: '/' | '/game' | '/lobby' | '/room/$roomId'
+  id: '__root__' | '/' | '/game' | '/lobby' | '/room/$roomId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -116,9 +67,6 @@ export interface RootRouteChildren {
   GameRoute: typeof GameRoute
   LobbyRoute: typeof LobbyRoute
   RoomRoomIdRoute: typeof RoomRoomIdRoute
-  ApiRoomsStreamRoute: typeof ApiRoomsStreamRoute
-  ApiRoomsRoomIdLeaveRoute: typeof ApiRoomsRoomIdLeaveRoute
-  ApiRoomsRoomIdStreamRoute: typeof ApiRoomsRoomIdStreamRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -151,27 +99,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RoomRoomIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/rooms/stream': {
-      id: '/api/rooms/stream'
-      path: '/api/rooms/stream'
-      fullPath: '/api/rooms/stream'
-      preLoaderRoute: typeof ApiRoomsStreamRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/rooms/$roomId/stream': {
-      id: '/api/rooms/$roomId/stream'
-      path: '/api/rooms/$roomId/stream'
-      fullPath: '/api/rooms/$roomId/stream'
-      preLoaderRoute: typeof ApiRoomsRoomIdStreamRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/rooms/$roomId/leave': {
-      id: '/api/rooms/$roomId/leave'
-      path: '/api/rooms/$roomId/leave'
-      fullPath: '/api/rooms/$roomId/leave'
-      preLoaderRoute: typeof ApiRoomsRoomIdLeaveRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -180,19 +107,7 @@ const rootRouteChildren: RootRouteChildren = {
   GameRoute: GameRoute,
   LobbyRoute: LobbyRoute,
   RoomRoomIdRoute: RoomRoomIdRoute,
-  ApiRoomsStreamRoute: ApiRoomsStreamRoute,
-  ApiRoomsRoomIdLeaveRoute: ApiRoomsRoomIdLeaveRoute,
-  ApiRoomsRoomIdStreamRoute: ApiRoomsRoomIdStreamRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

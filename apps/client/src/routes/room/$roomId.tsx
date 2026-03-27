@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
-import { $getRoom, $getSession, $leaveRoom, $startRoom } from '../../lib/serverFns'
-import type { PublicRoom } from '../../lib/store.server'
+import { getRoom, getSession, leaveBeacon, leaveRoom as apiLeaveRoom, roomEventSource, startRoom as apiStartRoom } from '../../lib/api'
+import type { PublicRoom } from '../../lib/api'
 
 export const Route = createFileRoute('/room/$roomId')({
     loader: async ({ params }) => {
-        const sessionData = await $getSession()
-        const roomData = await $getRoom({ data: params.roomId })
-        return { sessionId: sessionData.sessionId, room: roomData.room }
+        const session = await getSession()
+        const room = await getRoom(params.roomId)
+        return { sessionId: session.sessionId, room }
     },
     component: RoomPage,
 })
@@ -21,17 +21,16 @@ function RoomPage() {
     const navigatedRef = useRef(false)
 
     useEffect(() => {
-        const es = new EventSource(`/api/rooms/${params.roomId}/stream`)
+        const es = roomEventSource(params.roomId)
 
         es.addEventListener('room:update', (e) => {
-            const data = JSON.parse(e.data)
+            const data = JSON.parse((e as MessageEvent<string>).data) as { room: PublicRoom | null }
             if (data.room === null) {
                 navigate({ to: '/lobby' })
                 return
             }
-            const updatedRoom: PublicRoom = data.room
-            setRoom(updatedRoom)
-            if (updatedRoom.status === 'in-game' && !navigatedRef.current) {
+            setRoom(data.room)
+            if (data.room.status === 'in-game' && !navigatedRef.current) {
                 navigatedRef.current = true
                 navigate({ to: '/game', search: { roomId: params.roomId } })
             }
@@ -41,7 +40,7 @@ function RoomPage() {
     }, [params.roomId])
 
     useEffect(() => {
-        const handleUnload = () => navigator.sendBeacon(`/api/rooms/${params.roomId}/leave`)
+        const handleUnload = () => leaveBeacon(params.roomId)
         window.addEventListener('beforeunload', handleUnload)
         return () => window.removeEventListener('beforeunload', handleUnload)
     }, [params.roomId])
@@ -49,14 +48,14 @@ function RoomPage() {
     async function startGame() {
         setError(null)
         try {
-            await $startRoom({ data: params.roomId })
+            await apiStartRoom(params.roomId)
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Failed to start game')
         }
     }
 
     async function leaveRoom() {
-        try { await $leaveRoom({ data: params.roomId }) } catch { /* ignore */ }
+        try { await apiLeaveRoom(params.roomId) } catch { /* ignore */ }
         navigate({ to: '/lobby' })
     }
 

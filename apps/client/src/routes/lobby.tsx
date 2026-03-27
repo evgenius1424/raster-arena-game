@@ -1,12 +1,16 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useRef, useState } from 'react'
-import { $createRoom, $getSession, $joinRoom, $updateNickname } from '../lib/serverFns'
-import type { PublicRoom } from '../lib/store.server'
+import { useEffect, useState } from 'react'
+import {
+    createRoom as apiCreateRoom,
+    getSession,
+    joinRoom as apiJoinRoom,
+    lobbyEventSource,
+    updateNickname as apiUpdateNickname,
+} from '../lib/api'
+import type { PublicRoom } from '../lib/api'
 
 export const Route = createFileRoute('/lobby')({
-    loader: async () => {
-        return $getSession()
-    },
+    loader: async () => getSession(),
     component: LobbyPage,
 })
 
@@ -17,32 +21,25 @@ function LobbyPage() {
     const [nickname, setNickname] = useState(initialNickname ?? '')
     const [nicknameSaved, setNicknameSaved] = useState(!!initialNickname)
     const [error, setError] = useState<string | null>(null)
-    const esRef = useRef<EventSource | null>(null)
 
     useEffect(() => {
-        const es = new EventSource('/api/rooms/stream')
-        esRef.current = es
-
+        const es = lobbyEventSource()
         es.addEventListener('rooms:update', (e) => {
-            const data = JSON.parse(e.data)
+            const data = JSON.parse((e as MessageEvent<string>).data) as { rooms: PublicRoom[] }
             setRooms(data.rooms)
         })
-
-        return () => {
-            es.close()
-            esRef.current = null
-        }
+        return () => es.close()
     }, [])
 
     async function saveNickname() {
-        await $updateNickname({ data: nickname })
+        await apiUpdateNickname(nickname)
         setNicknameSaved(true)
     }
 
     async function createRoom() {
         setError(null)
         try {
-            const { room } = await $createRoom()
+            const room = await apiCreateRoom()
             navigate({ to: '/room/$roomId', params: { roomId: room.id } })
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Failed to create room')
@@ -52,7 +49,7 @@ function LobbyPage() {
     async function joinRoom(roomId: string) {
         setError(null)
         try {
-            await $joinRoom({ data: roomId })
+            await apiJoinRoom(roomId)
             navigate({ to: '/room/$roomId', params: { roomId } })
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Failed to join room')
@@ -131,8 +128,7 @@ function LobbyPage() {
                                         </span>
                                     </td>
                                     <td className="py-3 text-right">
-                                        {room.status === 'lobby' &&
-                                        room.playerCount < room.maxPlayers ? (
+                                        {room.status === 'lobby' && room.playerCount < room.maxPlayers ? (
                                             <button
                                                 onClick={() => joinRoom(room.id)}
                                                 className="border border-white px-4 py-1 text-xs uppercase tracking-widest hover:bg-white hover:text-black transition-colors cursor-pointer"

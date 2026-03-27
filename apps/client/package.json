@@ -16,8 +16,6 @@
     "dependencies": {
         "@game/wasm": "*",
         "@tanstack/react-router": "latest",
-        "@tanstack/react-start": "latest",
-        "@tanstack/router-plugin": "latest",
         "howler": "^2.2.4",
         "pixi.js": "^7.4.2",
         "react": "^19.2.0",
@@ -25,6 +23,7 @@
     },
     "devDependencies": {
         "@tailwindcss/vite": "latest",
+        "@tanstack/router-plugin": "latest",
         "@types/node": "^22.0.0",
         "@types/react": "^19.2.0",
         "@types/react-dom": "^19.2.0",

@@ -1,14 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
-import { $getSession } from '../lib/serverFns'
+import { getSession } from '../lib/api'
 
 export const Route = createFileRoute('/game')({
     validateSearch: (search: Record<string, unknown>) => ({
         roomId: typeof search.roomId === 'string' ? search.roomId : undefined,
     }),
-    loader: async () => {
-        return $getSession()
-    },
+    loader: async () => getSession(),
     component: GamePage,
 })
 

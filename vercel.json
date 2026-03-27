@@ -1,5 +1,6 @@
 {
-  "installCommand": "npm install",
-  "buildCommand": "cd apps/client && npx vite build",
-  "outputDirectory": "apps/client/dist"
+    "installCommand": "npm install",
+    "buildCommand": "cd apps/client && npx vite build",
+    "outputDirectory": "apps/client/dist",
+    "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

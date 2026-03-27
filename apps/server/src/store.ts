@@ -21,6 +21,17 @@ export type PublicRoom = {
     players: Array<{ nickname?: string; joinedAt: number; isCurrentPlayer: boolean }>
 }
 
+// Subscriber receives (event, data) and writes to an SSE response
+type Subscriber = (event: string, data: unknown) => void
+
+const MAX_PLAYERS = parseInt(process.env['MAX_PLAYERS_PER_ROOM'] ?? '4', 10)
+const LOBBY_STALE_MS = 30 * 60 * 1000
+const IN_GAME_STALE_MS = 2 * 60 * 60 * 1000
+
+const rooms = new Map<string, Room>()
+const lobbySubscribers = new Set<Subscriber>()
+const roomSubscribers = new Map<string, Map<Subscriber, string>>()
+
 // --- Public API ---
 
 export function toPublicRoom(room: Room, viewerSessionId?: string): PublicRoom {
@@ -103,43 +114,23 @@ export function startRoom(roomId: string, sessionId: string): Room | { error: st
     return room
 }
 
-export function subscribeLobby(ctrl: Controller): () => void {
-    lobbySubscribers.add(ctrl)
-    return () => {
-        lobbySubscribers.delete(ctrl)
-        try { ctrl.close() } catch { /* already closed */ }
-    }
+export function subscribeLobby(fn: Subscriber): () => void {
+    lobbySubscribers.add(fn)
+    return () => lobbySubscribers.delete(fn)
 }
 
-export function subscribeRoom(roomId: string, ctrl: Controller, sessionId: string): () => void {
+export function subscribeRoom(roomId: string, fn: Subscriber, sessionId: string): () => void {
     if (!roomSubscribers.has(roomId)) roomSubscribers.set(roomId, new Map())
-    roomSubscribers.get(roomId)!.set(ctrl, sessionId)
-    return () => {
-        roomSubscribers.get(roomId)?.delete(ctrl)
-        try { ctrl.close() } catch { /* already closed */ }
-    }
-}
-
-export function encodeSSE(event: string, data: unknown): Uint8Array {
-    return new TextEncoder().encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+    roomSubscribers.get(roomId)!.set(fn, sessionId)
+    return () => roomSubscribers.get(roomId)?.delete(fn)
 }
 
 // --- Internals ---
 
-const MAX_PLAYERS = parseInt(process.env['MAX_PLAYERS_PER_ROOM'] ?? '4', 10)
-const LOBBY_STALE_MS = 30 * 60 * 1000
-const IN_GAME_STALE_MS = 2 * 60 * 60 * 1000
-
-type Controller = ReadableStreamDefaultController<Uint8Array>
-
-const rooms = new Map<string, Room>()
-const lobbySubscribers = new Set<Controller>()
-const roomSubscribers = new Map<string, Map<Controller, string>>()
-
 function broadcastLobby(): void {
-    const payload = encodeSSE('rooms:update', { rooms: listRooms().map((r) => toPublicRoom(r)) })
-    for (const ctrl of lobbySubscribers) {
-        try { ctrl.enqueue(payload) } catch { lobbySubscribers.delete(ctrl) }
+    const data = { rooms: listRooms().map((r) => toPublicRoom(r)) }
+    for (const fn of lobbySubscribers) {
+        try { fn('rooms:update', data) } catch { lobbySubscribers.delete(fn) }
     }
 }
 
@@ -147,9 +138,8 @@ function broadcastRoom(roomId: string): void {
     const room = rooms.get(roomId)
     const subs = roomSubscribers.get(roomId)
     if (!subs) return
-    for (const [ctrl, sessionId] of subs) {
-        const payload = encodeSSE('room:update', { room: room ? toPublicRoom(room, sessionId) : null })
-        try { ctrl.enqueue(payload) } catch { subs.delete(ctrl) }
+    for (const [fn, sessionId] of subs) {
+        try { fn('room:update', { room: room ? toPublicRoom(room, sessionId) : null }) } catch { subs.delete(fn) }
     }
 }
 
