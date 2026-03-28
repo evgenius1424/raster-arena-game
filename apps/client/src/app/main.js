@@ -60,7 +60,9 @@ await ensureModelLoaded(localPlayer.model, localPlayer.skin)
 
 Render.initSprites(localPlayer)
 Render.renderMap()
-Render.setSceneReady(true)
+// In multiplayer, delay scene reveal until room_state arrives so the player
+// doesn't flash at a random local spawn before the server position is known.
+if (!window.__NFF_ROOM_ID) Render.setSceneReady(true)
 
 const state = { lastMouseY: Input.mouseY, lastMoveDir: 0 }
 
@@ -345,6 +347,7 @@ function initNetwork() {
                     Render.renderMap()
                 }
             }
+            Render.setSceneReady(true)
         },
         onSnapshot: (snapshot) => {
             const tick = Number(snapshot?.tick ?? -1)
