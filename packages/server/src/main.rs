@@ -65,6 +65,7 @@ struct AppState {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct TicketClaims {
     room_id: String,
     #[allow(dead_code)]
