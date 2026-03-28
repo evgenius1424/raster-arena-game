@@ -1,5 +1,5 @@
 import express from 'express'
-import { getOrCreateSession, readSession, signToken } from './session.js'
+import { getOrCreateSession, readSession, signTicket, signToken } from './session.js'
 import {
     createRoom,
     getRoom,
@@ -100,6 +100,24 @@ app.post('/api/rooms/:roomId/leave', async (req, res) => {
     if (!session) { res.status(401).send('Unauthorized'); return }
     leaveRoom(req.params.roomId, session.sessionId)
     res.status(204).send()
+})
+
+app.get('/api/rooms/:roomId/ticket', async (req, res) => {
+    const session = await readSession(req)
+    if (!session) { res.status(401).send('Unauthorized'); return }
+
+    const room = getRoom(req.params.roomId)
+    if (!room) { res.status(404).send('Room not found'); return }
+
+    const isInRoom = room.players.some((p) => p.sessionId === session.sessionId)
+    if (!isInRoom) { res.status(403).send('Not in this room'); return }
+
+    try {
+        const ticket = await signTicket(req.params.roomId, session.sessionId)
+        res.json({ ticket })
+    } catch {
+        res.status(503).send('Game secret not configured')
+    }
 })
 
 app.post('/api/rooms/:roomId/start', async (req, res) => {

@@ -79,6 +79,11 @@ export async function startRoom(roomId: string): Promise<PublicRoom> {
     return room
 }
 
+export async function getGameTicket(roomId: string): Promise<string> {
+    const { ticket } = await apiFetch<{ ticket: string }>(`/api/rooms/${roomId}/ticket`)
+    return ticket
+}
+
 // EventSource doesn't support custom headers — token goes in query string
 export function lobbyEventSource(): EventSource {
     const token = getToken()

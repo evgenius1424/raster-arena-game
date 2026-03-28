@@ -12,7 +12,7 @@ export const Route = createFileRoute('/game')({
 
 function GamePage() {
     const { roomId } = Route.useSearch()
-    const { sessionId } = Route.useLoaderData()
+    const { sessionId, nickname } = Route.useLoaderData()
     const bootstrapped = useRef(false)
 
     useEffect(() => {
@@ -29,6 +29,7 @@ function GamePage() {
         // Expose room/session config to the imperative game code before bootstrap runs
         if (roomId) window.__NFF_ROOM_ID = roomId
         if (sessionId) window.__NFF_SESSION_ID = sessionId
+        if (nickname) window.__NFF_NICKNAME = nickname
 
         import('../app/bootstrap.js').catch(console.error)
     }, [])

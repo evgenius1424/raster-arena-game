@@ -13,6 +13,7 @@ export type SessionData = {
 }
 
 const SECRET = process.env['SESSION_SECRET'] ?? 'dev-secret-please-change-in-production-min32'
+const GAME_SECRET = process.env['GAME_SECRET'] ?? ''
 
 /** Read session from Authorization header or ?token= query param (for SSE / sendBeacon). */
 export async function readSession(req: Request): Promise<SessionPayload | null> {
@@ -37,6 +38,25 @@ export async function getOrCreateSession(req: Request): Promise<SessionData> {
 /** Sign an updated payload and return the new token. */
 export async function signUpdatedSession(payload: SessionPayload): Promise<string> {
     return signToken(payload)
+}
+
+export async function signTicket(roomId: string, sessionId: string): Promise<string> {
+    if (!GAME_SECRET) throw new Error('GAME_SECRET not configured')
+    const exp = Date.now() + 60_000 // 1 minute TTL
+    const payload = { roomId, sessionId, exp }
+    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url')
+    const sig = await crypto.subtle.sign('HMAC', await getGameKey(), new TextEncoder().encode(encoded))
+    return `${encoded}.${Buffer.from(sig).toString('base64url')}`
+}
+
+async function getGameKey(): Promise<CryptoKey> {
+    return crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(GAME_SECRET),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign'],
+    )
 }
 
 export async function signToken(payload: SessionPayload): Promise<string> {

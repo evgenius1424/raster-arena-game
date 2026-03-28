@@ -1284,14 +1284,17 @@ name = "nff-server"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "base64 0.22.1",
  "binary_protocol",
  "bytes",
  "futures-util",
+ "hmac",
  "physics_core",
  "rand",
  "rand_chacha",
  "serde",
  "serde_json",
+ "sha2",
  "smallvec",
  "tokio",
  "tower-http",

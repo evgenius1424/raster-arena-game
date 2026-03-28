@@ -303,7 +303,7 @@ export class NetworkClient {
         return true
     }
 
-    connect({ url = DEFAULT_SERVER_URL, username, roomId, map = DEFAULT_MAP } = {}) {
+    connect({ url = DEFAULT_SERVER_URL, username, roomId, map = DEFAULT_MAP, ticket = null } = {}) {
         if (this.connected) return Promise.resolve()
         if (!username) return Promise.reject(new Error('Username required'))
 
@@ -314,7 +314,7 @@ export class NetworkClient {
                 await ensureModelLoaded(this.localPlayer.model, skin)
                 this.localPlayer.skin = skin
             }
-            await this.connectWebRtc({ url, username, roomId, map })
+            await this.connectWebRtc({ url, username, roomId, map, ticket })
         })
     }
 
@@ -358,14 +358,15 @@ export class NetworkClient {
         this.gameDataChannel.send(payload)
     }
 
-    async connectWebRtc({ url, username, roomId, map }) {
+    async connectWebRtc({ url, username, roomId, map, ticket }) {
         try {
             if (typeof RTCPeerConnection === 'undefined') {
                 throw new Error('WebRTC not supported by this browser')
             }
 
             const signalingUrl = toRtcSignalingUrl(url)
-            this.signalSocket = new WebSocket(signalingUrl)
+            const wsUrl = ticket ? `${signalingUrl}?ticket=${encodeURIComponent(ticket)}` : signalingUrl
+            this.signalSocket = new WebSocket(wsUrl)
             this.signalSocket.binaryType = 'arraybuffer'
 
             await waitForWebSocketOpen(this.signalSocket)

@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
-use axum::extract::{ConnectInfo, State};
+use axum::extract::{ConnectInfo, Query, State};
 use axum::http::{header, Method, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::get;
@@ -61,6 +61,20 @@ struct AppState {
     max_message_bytes: usize,
     max_players_per_room: usize,
     ip_connections: tokio::sync::Mutex<HashMap<IpAddr, usize>>,
+    game_secret: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct TicketClaims {
+    room_id: String,
+    #[allow(dead_code)]
+    session_id: String,
+    exp: u64,
+}
+
+#[derive(Debug, Deserialize)]
+struct RtcQuery {
+    ticket: Option<String>,
 }
 
 enum RtcCmd {
@@ -165,6 +179,13 @@ async fn main() -> std::io::Result<()> {
         .and_then(|v| v.parse().ok())
         .unwrap_or(65536);
 
+    let game_secret = std::env::var("GAME_SECRET").ok().filter(|s| !s.is_empty());
+    if game_secret.is_some() {
+        info!("GAME_SECRET configured: ticket validation enabled for /rtc");
+    } else {
+        info!("GAME_SECRET not set: /rtc open to all connections");
+    }
+
     let state = Arc::new(AppState {
         room_manager: Arc::new(RoomManager::new(
             Instant::now(),
@@ -178,6 +199,7 @@ async fn main() -> std::io::Result<()> {
         max_message_bytes,
         max_players_per_room,
         ip_connections: tokio::sync::Mutex::new(HashMap::new()),
+        game_secret,
     });
 
     tokio::spawn(run_console(Arc::clone(&state)));
@@ -398,14 +420,57 @@ fn api_error(status: StatusCode, error: &str, message: &str) -> axum::response::
 async fn rtc_ws_handler(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(state): State<Arc<AppState>>,
+    Query(query): Query<RtcQuery>,
     ws: WebSocketUpgrade,
-) -> impl IntoResponse {
+) -> axum::response::Response {
+    let claimed_room_id = if let Some(secret) = &state.game_secret {
+        let Some(ticket) = &query.ticket else {
+            return StatusCode::UNAUTHORIZED.into_response();
+        };
+        match verify_game_ticket(ticket, secret) {
+            Some(c) => Some(c.room_id),
+            None => return StatusCode::UNAUTHORIZED.into_response(),
+        }
+    } else {
+        None
+    };
+
     let client_ip = addr.ip();
-    ws.on_upgrade(move |socket| handle_rtc_socket(state, socket, client_ip))
+    ws.on_upgrade(move |socket| handle_rtc_socket(state, socket, client_ip, claimed_room_id))
+        .into_response()
+}
+
+fn verify_game_ticket(token: &str, secret: &str) -> Option<TicketClaims> {
+    use base64::Engine as _;
+    use hmac::Mac as _;
+    let engine = base64::engine::general_purpose::URL_SAFE_NO_PAD;
+
+    let mut parts = token.splitn(2, '.');
+    let encoded = parts.next()?;
+    let sig_b64 = parts.next()?;
+
+    let sig_bytes = engine.decode(sig_b64).ok()?;
+
+    let mut mac = hmac::Hmac::<sha2::Sha256>::new_from_slice(secret.as_bytes()).ok()?;
+    mac.update(encoded.as_bytes());
+    mac.verify_slice(&sig_bytes).ok()?;
+
+    let payload_bytes = engine.decode(encoded).ok()?;
+    let claims: TicketClaims = serde_json::from_slice(&payload_bytes).ok()?;
+
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?
+        .as_millis() as u64;
+    if claims.exp < now_ms {
+        return None;
+    }
+
+    Some(claims)
 }
 
 /// Outer handler: enforces per-IP connection limit, then delegates to inner.
-async fn handle_rtc_socket(state: Arc<AppState>, socket: WebSocket, client_ip: IpAddr) {
+async fn handle_rtc_socket(state: Arc<AppState>, socket: WebSocket, client_ip: IpAddr, claimed_room_id: Option<String>) {
     {
         let mut ip_conns = state.ip_connections.lock().await;
         let count = ip_conns.entry(client_ip).or_insert(0);
@@ -420,7 +485,7 @@ async fn handle_rtc_socket(state: Arc<AppState>, socket: WebSocket, client_ip: I
         *count += 1;
     }
 
-    handle_rtc_socket_inner(Arc::clone(&state), socket).await;
+    handle_rtc_socket_inner(Arc::clone(&state), socket, claimed_room_id).await;
 
     {
         let mut ip_conns = state.ip_connections.lock().await;
@@ -434,7 +499,7 @@ async fn handle_rtc_socket(state: Arc<AppState>, socket: WebSocket, client_ip: I
     }
 }
 
-async fn handle_rtc_socket_inner(state: Arc<AppState>, socket: WebSocket) {
+async fn handle_rtc_socket_inner(state: Arc<AppState>, socket: WebSocket, claimed_room_id: Option<String>) {
     let (mut ws_sender, mut ws_receiver) = socket.split();
 
     let Some(Ok(Message::Text(offer_text))) = ws_receiver.next().await else {
@@ -527,6 +592,7 @@ async fn handle_rtc_socket_inner(state: Arc<AppState>, socket: WebSocket) {
                         player_id,
                         client_msg,
                         &game_outbound_tx_for_session,
+                        claimed_room_id.as_deref(),
                     )
                     .await;
                     if !keep_running {
@@ -664,6 +730,7 @@ async fn handle_client_msg(
     player_id: PlayerId,
     msg: ClientMsg,
     outbound_tx: &mpsc::Sender<Bytes>,
+    claimed_room_id: Option<&str>,
 ) -> bool {
     match msg {
         ClientMsg::Hello {
@@ -679,7 +746,10 @@ async fn handle_client_msg(
             true
         }
         ClientMsg::JoinRoom { room_id, map } => {
-            let room_ref = room_id.unwrap_or_else(|| DEFAULT_ROOM_ID.to_string());
+            let room_ref = claimed_room_id
+                .map(|s| s.to_string())
+                .or(room_id)
+                .unwrap_or_else(|| DEFAULT_ROOM_ID.to_string());
             let map_name = map.unwrap_or_else(|| DEFAULT_MAP_NAME.to_string());
             let Some(game_map) = load_map(&state.map_dir, &map_name) else {
                 warn!(

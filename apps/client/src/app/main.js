@@ -12,6 +12,7 @@ import { BotManager } from '../bot/manager'
 import { NetworkClient } from '../net/client'
 import { createRoom, listRooms } from '../net/roomApi'
 import { getBackendWsUrl } from '../net/wsEndpoint'
+import { getGameTicket } from '../lib/api'
 
 const AIM_INPUT_SCALE = 0.5
 const PICKUP_RADIUS = PhysicsConstants.PICKUP_RADIUS
@@ -69,6 +70,7 @@ setupPointerLock()
 setupExplosionHandlers()
 setupConsoleCommands()
 initNetwork()
+autoConnectFromLobby()
 
 requestAnimationFrame((ts) => gameLoop(ts, localPlayer))
 
@@ -360,6 +362,30 @@ function initNetwork() {
         player.update()
         Physics.stepPlayers([player], 1)
     })
+}
+
+async function autoConnectFromLobby() {
+    const roomId = window.__NFF_ROOM_ID
+    const sessionId = window.__NFF_SESSION_ID
+    if (!roomId || !sessionId) return
+
+    const username = window.__NFF_NICKNAME || sessionId.slice(0, 8)
+    const url = getBackendWsUrl()
+
+    let ticket = null
+    try {
+        ticket = await getGameTicket(roomId)
+    } catch (err) {
+        Console.writeText(`[mp] Could not get game ticket: ${err.message}`)
+    }
+
+    try {
+        Console.writeText(`[mp] Connecting to room ${roomId}...`)
+        await network.connect({ url, username, roomId, ticket })
+        Console.writeText(`[mp] Connected as ${username}`)
+    } catch (err) {
+        Console.writeText(`[mp] Auto-connect failed: ${err.message}`)
+    }
 }
 
 async function syncTickRateFromRoom(room) {
