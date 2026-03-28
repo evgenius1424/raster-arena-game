@@ -130,5 +130,5 @@ app.get('/api/rooms/:roomId/stream', async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`)
-    console.log(`CORS origin: ${CORS_ORIGIN}`)
+    console.log(`Port: ${PORT}`)
 })
