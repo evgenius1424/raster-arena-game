@@ -116,7 +116,10 @@ app.get('/api/rooms/:roomId/ticket', async (req, res) => {
         const ticket = await signTicket(req.params.roomId, session.sessionId)
         res.json({ ticket })
     } catch {
-        res.status(503).send('Game secret not configured')
+        // No GAME_SECRET configured (local dev) — return null ticket so the client
+        // can still connect; the game server also accepts ticketless connections
+        // when GAME_SECRET is not set.
+        res.json({ ticket: null })
     }
 })
 
