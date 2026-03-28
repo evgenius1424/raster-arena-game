@@ -26,7 +26,9 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info, warn};
 use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
+use webrtc::api::setting_engine::SettingEngine;
 use webrtc::api::APIBuilder;
+use webrtc::ice::mdns::MulticastDnsMode;
 use webrtc::data_channel::data_channel_message::DataChannelMessage;
 use webrtc::ice_transport::ice_credential_type::RTCIceCredentialType;
 use webrtc::ice_transport::ice_server::RTCIceServer;
@@ -550,9 +552,13 @@ async fn handle_rtc_socket_inner(state: Arc<AppState>, socket: WebSocket, claime
         Err(_) => return,
     };
 
+    let mut setting_engine = SettingEngine::default();
+    setting_engine.set_ice_multicast_dns_mode(MulticastDnsMode::Disabled);
+
     let api = APIBuilder::new()
         .with_media_engine(media_engine)
         .with_interceptor_registry(registry)
+        .with_setting_engine(setting_engine)
         .build();
 
     let mut ice_servers = vec![RTCIceServer {
