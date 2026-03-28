@@ -1,5 +1,4 @@
 import express from 'express'
-import cors from 'cors'
 import { getOrCreateSession, readSession, signToken } from './session.js'
 import {
     createRoom,
@@ -15,9 +14,8 @@ import {
 
 const app = express()
 const PORT = parseInt(process.env['PORT'] ?? '3002', 10)
-const CORS_ORIGIN = process.env['CORS_ORIGIN'] ?? 'http://localhost:8080'
 
-app.use(cors({ origin: CORS_ORIGIN, credentials: false }))
+// CORS is handled by Caddy in production. In dev, Vite proxies /api so no CORS needed.
 app.use(express.json())
 
 // --- Session ---
