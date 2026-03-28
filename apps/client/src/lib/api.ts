@@ -60,8 +60,8 @@ export async function getRoom(roomId: string): Promise<PublicRoom> {
     return room
 }
 
-export async function createRoom(): Promise<PublicRoom> {
-    const { room } = await apiFetch<{ room: PublicRoom }>('/api/rooms', { method: 'POST' })
+export async function createRoom(id: string): Promise<PublicRoom> {
+    const { room } = await apiFetch<{ room: PublicRoom }>('/api/rooms', { method: 'POST', body: JSON.stringify({ id }) })
     return room
 }
 

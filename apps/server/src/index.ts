@@ -75,7 +75,8 @@ app.get('/api/rooms', async (req, res) => {
 app.post('/api/rooms', async (req, res) => {
     const session = await readSession(req)
     if (!session) { res.status(401).send('Unauthorized'); return }
-    const room = createRoom({ sessionId: session.sessionId, nickname: session.nickname, joinedAt: Date.now() })
+    const clientId = typeof req.body?.id === 'string' && /^[0-9a-f-]{36}$/.test(req.body.id) ? req.body.id : undefined
+    const room = createRoom({ sessionId: session.sessionId, nickname: session.nickname, joinedAt: Date.now() }, clientId)
     res.status(201).json({ room: toPublicRoom(room, session.sessionId) })
 })
 

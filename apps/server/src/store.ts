@@ -70,8 +70,8 @@ export function findSessionRoom(sessionId: string): Room | undefined {
     return undefined
 }
 
-export function createRoom(host: Player): Room {
-    const room: Room = { id: crypto.randomUUID(), createdAt: Date.now(), players: [host], status: 'lobby' }
+export function createRoom(host: Player, id?: string): Room {
+    const room: Room = { id: id ?? crypto.randomUUID(), createdAt: Date.now(), players: [host], status: 'lobby' }
     rooms.set(room.id, room)
     broadcastLobby()
     return room

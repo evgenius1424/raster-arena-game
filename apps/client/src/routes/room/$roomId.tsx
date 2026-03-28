@@ -6,7 +6,8 @@ import type { PublicRoom } from '../../lib/api'
 export const Route = createFileRoute('/room/$roomId')({
     loader: async ({ params }) => {
         const session = await getSession()
-        const room = await getRoom(params.roomId)
+        let room: PublicRoom | null = null
+        try { room = await getRoom(params.roomId) } catch { /* room may not exist yet if navigated optimistically */ }
         return { sessionId: session.sessionId, room }
     },
     component: RoomPage,
@@ -16,7 +17,7 @@ function RoomPage() {
     const { params } = Route.useMatch()
     const { sessionId, room: initialRoom } = Route.useLoaderData()
     const navigate = useNavigate()
-    const [room, setRoom] = useState<PublicRoom>(initialRoom)
+    const [room, setRoom] = useState<PublicRoom | null>(initialRoom)
     const [error, setError] = useState<string | null>(null)
     const navigatedRef = useRef(false)
 
@@ -57,6 +58,14 @@ function RoomPage() {
     async function leaveRoom() {
         try { await apiLeaveRoom(params.roomId) } catch { /* ignore */ }
         navigate({ to: '/lobby' })
+    }
+
+    if (!room) {
+        return (
+            <div className="min-h-screen bg-black text-white flex items-center justify-center">
+                <p className="text-gray-500 text-sm uppercase tracking-widest animate-pulse">Creating room…</p>
+            </div>
+        )
     }
 
     return (
