@@ -5,13 +5,14 @@ import { getSession } from '../lib/api'
 export const Route = createFileRoute('/game')({
     validateSearch: (search: Record<string, unknown>) => ({
         roomId: typeof search.roomId === 'string' ? search.roomId : undefined,
+        bots: typeof search.bots === 'number' ? Math.max(0, Math.floor(search.bots)) : undefined,
     }),
     loader: async () => getSession(),
     component: GamePage,
 })
 
 function GamePage() {
-    const { roomId } = Route.useSearch()
+    const { roomId, bots } = Route.useSearch()
     const { sessionId, nickname } = Route.useLoaderData()
     const bootstrapped = useRef(false)
 
@@ -30,6 +31,7 @@ function GamePage() {
         if (roomId) window.__NFF_ROOM_ID = roomId
         if (sessionId) window.__NFF_SESSION_ID = sessionId
         if (nickname) window.__NFF_NICKNAME = nickname
+        if (bots) window.__NFF_BOTS = bots
 
         import('../app/bootstrap.js').catch(console.error)
     }, [])

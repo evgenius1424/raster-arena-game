@@ -65,6 +65,8 @@ Render.setSceneReady(true)
 const state = { lastMouseY: Input.mouseY, lastMoveDir: 0 }
 
 BotManager.init(localPlayer)
+const _autoBotsCount = window.__NFF_BOTS ?? 0
+for (let i = 0; i < _autoBotsCount; i++) BotManager.spawnBot('medium')
 spawnPlayer(localPlayer)
 setupPointerLock()
 setupExplosionHandlers()
