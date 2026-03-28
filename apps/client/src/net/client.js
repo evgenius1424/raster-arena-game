@@ -550,7 +550,16 @@ export class NetworkClient {
 
     hydrateRoom(roomState) {
         for (const player of roomState.players ?? []) {
-            if (player.id === this.playerId) continue
+            if (player.id === this.playerId) {
+                // Apply the server-assigned spawn position to the local player so it
+                // starts at the right spot instead of jumping on the first snapshot.
+                if (this.localPlayer && player.state) {
+                    applyPlayerState(this.localPlayer, player.state, false)
+                    this.localPlayer.prevX = this.localPlayer.x
+                    this.localPlayer.prevY = this.localPlayer.y
+                }
+                continue
+            }
             this.upsertRemotePlayer(player)
         }
     }
