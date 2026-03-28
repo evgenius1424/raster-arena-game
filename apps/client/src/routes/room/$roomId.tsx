@@ -1,23 +1,18 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
-import { getRoom, getSession, leaveBeacon, leaveRoom as apiLeaveRoom, roomEventSource, startRoom as apiStartRoom } from '../../lib/api'
+import { getSession, leaveBeacon, leaveRoom as apiLeaveRoom, roomEventSource, startRoom as apiStartRoom } from '../../lib/api'
 import type { PublicRoom } from '../../lib/api'
 
 export const Route = createFileRoute('/room/$roomId')({
-    loader: async ({ params }) => {
-        const session = await getSession()
-        let room: PublicRoom | null = null
-        try { room = await getRoom(params.roomId) } catch { /* room may not exist yet if navigated optimistically */ }
-        return { sessionId: session.sessionId, room }
-    },
+    loader: async () => getSession(),
     component: RoomPage,
 })
 
 function RoomPage() {
     const { params } = Route.useMatch()
-    const { sessionId, room: initialRoom } = Route.useLoaderData()
+    const { sessionId } = Route.useLoaderData()
     const navigate = useNavigate()
-    const [room, setRoom] = useState<PublicRoom | null>(initialRoom)
+    const [room, setRoom] = useState<PublicRoom | null>(null)
     const [error, setError] = useState<string | null>(null)
     const navigatedRef = useRef(false)
 

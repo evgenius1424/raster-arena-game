@@ -39,8 +39,9 @@ function LobbyPage() {
     function createRoom() {
         setError(null)
         const roomId = crypto.randomUUID()
-        navigate({ to: '/room/$roomId', params: { roomId } })
-        apiCreateRoom(roomId).catch((e) => setError(e instanceof Error ? e.message : 'Failed to create room'))
+        navigate({ to: '/room/$roomId', params: { roomId } }).then(() =>
+            apiCreateRoom(roomId).catch((e) => setError(e instanceof Error ? e.message : 'Failed to create room'))
+        )
     }
 
     async function joinRoom(roomId: string) {
