@@ -462,7 +462,8 @@ fn verify_game_ticket(token: &str, secret: &str) -> Option<TicketClaims> {
         .duration_since(std::time::UNIX_EPOCH)
         .ok()?
         .as_millis() as u64;
-    if claims.exp < now_ms {
+    // Allow 5s clock skew between Express and Rust clocks
+    if claims.exp + 5_000 < now_ms {
         return None;
     }
 
@@ -746,10 +747,21 @@ async fn handle_client_msg(
             true
         }
         ClientMsg::JoinRoom { room_id, map } => {
-            let room_ref = claimed_room_id
-                .map(|s| s.to_string())
-                .or(room_id)
-                .unwrap_or_else(|| DEFAULT_ROOM_ID.to_string());
+            let room_ref = if let Some(claimed) = claimed_room_id {
+                if let Some(ref client_room) = room_id {
+                    if client_room != claimed {
+                        warn!(
+                            player_id = player_id.0,
+                            client_room_id = client_room,
+                            ticket_room_id = claimed,
+                            "JoinRoom: client room_id overridden by ticket"
+                        );
+                    }
+                }
+                claimed.to_string()
+            } else {
+                room_id.unwrap_or_else(|| DEFAULT_ROOM_ID.to_string())
+            };
             let map_name = map.unwrap_or_else(|| DEFAULT_MAP_NAME.to_string());
             let Some(game_map) = load_map(&state.map_dir, &map_name) else {
                 warn!(

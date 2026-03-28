@@ -376,7 +376,8 @@ async function autoConnectFromLobby() {
     try {
         ticket = await getGameTicket(roomId)
     } catch (err) {
-        Console.writeText(`[mp] Could not get game ticket: ${err.message}`)
+        Console.writeText(`[mp] Auto-connect failed: could not get ticket — ${err.message}`)
+        return
     }
 
     try {

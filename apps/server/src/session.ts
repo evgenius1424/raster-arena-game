@@ -49,14 +49,17 @@ export async function signTicket(roomId: string, sessionId: string): Promise<str
     return `${encoded}.${Buffer.from(sig).toString('base64url')}`
 }
 
+let _gameKey: CryptoKey | null = null
 async function getGameKey(): Promise<CryptoKey> {
-    return crypto.subtle.importKey(
+    if (_gameKey) return _gameKey
+    _gameKey = await crypto.subtle.importKey(
         'raw',
         new TextEncoder().encode(GAME_SECRET),
         { name: 'HMAC', hash: 'SHA-256' },
         false,
         ['sign'],
     )
+    return _gameKey
 }
 
 export async function signToken(payload: SessionPayload): Promise<string> {
