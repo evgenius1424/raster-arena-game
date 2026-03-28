@@ -7,6 +7,7 @@ export type Player = {
 export type Room = {
     id: string
     createdAt: number
+    startedAt?: number
     players: Player[]
     status: 'lobby' | 'in-game'
 }
@@ -26,7 +27,7 @@ type Subscriber = (event: string, data: unknown) => void
 
 const MAX_PLAYERS = parseInt(process.env['MAX_PLAYERS_PER_ROOM'] ?? '4', 10)
 const LOBBY_STALE_MS = 30 * 60 * 1000
-const IN_GAME_STALE_MS = 2 * 60 * 60 * 1000
+const IN_GAME_STALE_MS = 30 * 60 * 1000
 
 const rooms = new Map<string, Room>()
 const lobbySubscribers = new Set<Subscriber>()
@@ -52,6 +53,10 @@ export function toPublicRoom(room: Room, viewerSessionId?: string): PublicRoom {
 
 export function listRooms(): Room[] {
     return Array.from(rooms.values())
+}
+
+export function listLobbyRooms(): Room[] {
+    return Array.from(rooms.values()).filter((r) => r.status === 'lobby')
 }
 
 export function getRoom(roomId: string): Room | undefined {
@@ -109,6 +114,7 @@ export function startRoom(roomId: string, sessionId: string): Room | { error: st
     if (room.players[0]?.sessionId !== sessionId) return { error: 'Only the host can start the game' }
     if (room.status === 'in-game') return room
     room.status = 'in-game'
+    room.startedAt = Date.now()
     broadcastRoom(roomId)
     broadcastLobby()
     return room
@@ -128,7 +134,7 @@ export function subscribeRoom(roomId: string, fn: Subscriber, sessionId: string)
 // --- Internals ---
 
 function broadcastLobby(): void {
-    const data = { rooms: listRooms().map((r) => toPublicRoom(r)) }
+    const data = { rooms: listLobbyRooms().map((r) => toPublicRoom(r)) }
     for (const fn of lobbySubscribers) {
         try { fn('rooms:update', data) } catch { lobbySubscribers.delete(fn) }
     }
@@ -147,10 +153,11 @@ setInterval(() => {
     const now = Date.now()
     let changed = false
     for (const [roomId, room] of rooms) {
-        const age = now - room.createdAt
+        const lobbyAge = now - room.createdAt
+        const gameAge = now - (room.startedAt ?? room.createdAt)
         if (
-            (room.status === 'lobby' && age > LOBBY_STALE_MS) ||
-            (room.status === 'in-game' && age > IN_GAME_STALE_MS)
+            (room.status === 'lobby' && lobbyAge > LOBBY_STALE_MS) ||
+            (room.status === 'in-game' && gameAge > IN_GAME_STALE_MS)
         ) {
             rooms.delete(roomId)
             broadcastRoom(roomId)

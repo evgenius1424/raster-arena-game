@@ -5,7 +5,7 @@ import {
     getRoom,
     joinRoom,
     leaveRoom,
-    listRooms,
+    listLobbyRooms,
     startRoom,
     subscribeLobby,
     subscribeRoom,
@@ -58,7 +58,7 @@ app.get('/api/rooms/stream', async (req, res) => {
 
     sseHeaders(res)
     const send = sseSend(res)
-    send('rooms:update', { rooms: listRooms().map((r) => toPublicRoom(r)) })
+    send('rooms:update', { rooms: listLobbyRooms().map((r) => toPublicRoom(r)) })
 
     const unsub = subscribeLobby(send)
     req.on('close', unsub)
@@ -69,7 +69,7 @@ app.get('/api/rooms/stream', async (req, res) => {
 app.get('/api/rooms', async (req, res) => {
     const session = await readSession(req)
     if (!session) { res.status(401).send('Unauthorized'); return }
-    res.json({ rooms: listRooms().map((r) => toPublicRoom(r, session.sessionId)) })
+    res.json({ rooms: listLobbyRooms().map((r) => toPublicRoom(r, session.sessionId)) })
 })
 
 app.post('/api/rooms', async (req, res) => {

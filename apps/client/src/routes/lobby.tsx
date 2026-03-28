@@ -103,7 +103,6 @@ function LobbyPage() {
                             <tr className="text-gray-500 uppercase tracking-widest text-xs border-b border-gray-800">
                                 <th className="text-left py-2 font-normal">Room</th>
                                 <th className="text-left py-2 font-normal">Players</th>
-                                <th className="text-left py-2 font-normal">Status</th>
                                 <th className="py-2" />
                             </tr>
                         </thead>
@@ -116,19 +115,8 @@ function LobbyPage() {
                                     <td className="py-3">
                                         {room.playerCount}/{room.maxPlayers}
                                     </td>
-                                    <td className="py-3">
-                                        <span
-                                            className={
-                                                room.status === 'in-game'
-                                                    ? 'text-yellow-500 uppercase text-xs'
-                                                    : 'text-green-500 uppercase text-xs'
-                                            }
-                                        >
-                                            {room.status}
-                                        </span>
-                                    </td>
                                     <td className="py-3 text-right">
-                                        {room.status === 'lobby' && room.playerCount < room.maxPlayers ? (
+                                        {room.playerCount < room.maxPlayers ? (
                                             <button
                                                 onClick={() => joinRoom(room.id)}
                                                 className="border border-white px-4 py-1 text-xs uppercase tracking-widest hover:bg-white hover:text-black transition-colors cursor-pointer"
