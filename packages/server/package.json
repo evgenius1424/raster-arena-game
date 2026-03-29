@@ -3,9 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "cd ../.. && cargo run -p nff-server",
-    "build": "cd ../.. && cargo build -p nff-server --release",
-    "preview": "cd ../.. && ./target/release/nff-server",
-    "format": "cargo fmt -p nff-server"
+    "dev": "cd ../.. && cargo run -p raster-arena-server",
+    "build": "cd ../.. && cargo build -p raster-arena-server --release",
+    "preview": "cd ../.. && ./target/release/raster-arena-server",
+    "format": "cargo fmt -p raster-arena-server"
   }
 }

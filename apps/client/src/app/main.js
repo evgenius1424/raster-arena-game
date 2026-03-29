@@ -62,12 +62,12 @@ Render.initSprites(localPlayer)
 Render.renderMap()
 // In multiplayer, delay scene reveal until room_state arrives so the player
 // doesn't flash at a random local spawn before the server position is known.
-if (!window.__NFF_ROOM_ID) Render.setSceneReady(true)
+if (!window.__GAME_ROOM_ID) Render.setSceneReady(true)
 
 const state = { lastMouseY: Input.mouseY, lastMoveDir: 0 }
 
 BotManager.init(localPlayer)
-const _autoBotsCount = window.__NFF_BOTS ?? 0
+const _autoBotsCount = window.__GAME_BOTS ?? 0
 for (let i = 0; i < _autoBotsCount; i++) BotManager.spawnBot('medium')
 spawnPlayer(localPlayer)
 setupPointerLock()
@@ -370,11 +370,11 @@ function initNetwork() {
 }
 
 async function autoConnectFromLobby() {
-    const roomId = window.__NFF_ROOM_ID
-    const sessionId = window.__NFF_SESSION_ID
+    const roomId = window.__GAME_ROOM_ID
+    const sessionId = window.__GAME_SESSION_ID
     if (!roomId || !sessionId) return
 
-    const username = window.__NFF_NICKNAME || sessionId.slice(0, 8)
+    const username = window.__GAME_NICKNAME || sessionId.slice(0, 8)
     const url = getBackendWsUrl()
 
     let ticket = null

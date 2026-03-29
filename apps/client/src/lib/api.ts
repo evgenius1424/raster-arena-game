@@ -16,7 +16,7 @@ export type SessionData = {
     token: string
 }
 
-const TOKEN_KEY = 'nff_token'
+const TOKEN_KEY = 'game_token'
 
 export function getToken(): string | null {
     return localStorage.getItem(TOKEN_KEY)

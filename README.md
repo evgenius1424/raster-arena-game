@@ -1,110 +1,54 @@
-# Need For Fun 🕹️
+# Raster Arena
 
-Need For Fun is a fast 2D arena shooter with a modern monorepo setup:
+**Fast-paced 2D arena deathmatch in your browser.**
 
-- **Web client**: Vite + Pixi (`apps/web`)
-- **Realtime server**: Rust + Axum WebSocket (`apps/server`)
-- **Shared game kernel**: Rust crates compiled natively and to WASM (`crates/*`)
+Pick up weapons, hunt other players, dominate the scoreboard. Matches are instant — no installs, no accounts.
 
-## Project Layout
+---
 
-```text
-apps/
-  web/                 # Vite game client
-  server/              # Rust realtime server
-crates/
-  shared/
-    binary_protocol/   # Shared binary network protocol
-    physics_core/      # Shared movement/combat physics (native + wasm)
-dist/
-  web/                 # Web build output
-```
+## How to Play
 
-## One-command workflows
+- **Move** — `A` / `D` or arrow keys
+- **Jump** — `W`, `Space`, or up arrow
+- **Aim** — mouse
+- **Shoot** — left click
+- **Switch weapon** — scroll wheel or `1`–`9`
+- **Console** — `~` (debug commands)
 
-> Prerequisites: `node`, `npm`, `rust`, `cargo`, `wasm-pack`
+---
 
-```bash
-npm install
-```
+## Game Modes
 
-### Development (client + server)
+| Mode | Description |
+|---|---|
+| Play with Bot | Solo deathmatch against an AI opponent — instant, no server needed |
+| Multiplayer | Create or join a room and fight real players in real time |
 
-```bash
-npm run dev
-```
+---
 
-- Builds fresh WASM bindings first.
-- Starts Vite dev server on `http://localhost:8080`.
-- Starts Rust game server on `http://localhost:3001`.
+## Weapons
 
-### Production build (client + server)
+Gauntlet · Machine Gun · Shotgun · Grenade Launcher · Rocket Launcher · Plasma Gun · BFG
 
-```bash
-npm run build
-```
+Weapons and ammo spawn on the map and respawn on a timer. Control the power pickups to stay on top.
 
-- Rebuilds WASM bindings.
-- Builds frontend assets into `dist/web`.
-- Builds Rust server in release mode.
+---
 
-### Preview the full stack
+## Arena
 
-```bash
-npm run preview
-```
+Maps are tile-based grids with platforms, corridors, and open areas. Health packs, armor shards, and the Quad Damage buff are scattered across the arena — movement and map control matter as much as aim.
 
-- Serves built web app via Vite preview.
-- Runs Rust server in release mode.
+---
 
-## Focused commands
+## Multiplayer Rooms
 
-```bash
-npm run wasm:build      # Build shared physics_core to wasm for web client
-npm run web:dev         # Start only Vite client
-npm run web:build       # Build only web client
-npm run server:dev      # Start only Rust server (debug)
-npm run server:build    # Build only Rust server (release)
-```
+- Rooms are public and open — share the link to invite friends
+- Up to 8 players per room
+- The host starts the match from the lobby
+- Sessions are in-memory; closing the tab leaves the room automatically
 
-## Server room management (in-memory, console-first)
+---
 
-The server now has an in-memory room subsystem intended for both current console administration and future UI/API usage.
+## Tech
 
-### Lifecycle
-
-Each room transitions through:
-
-- `created` -> room exists and can accept joins.
-- `running` -> at least one player is connected; simulation ticks are active.
-- `closing` -> cleanup/teardown in progress (triggered when last player leaves).
-- `closed` -> task ended and room removed from manager listing.
-
-When the last player leaves, the room automatically goes to `closing` and stops ticking.
-
-### Console commands
-
-The server reads console input from stdin. Use:
-
-- `rooms list`
-- `rooms create <name> [maxPlayers] [mapId] [mode]`
-- `rooms close <roomId|name>`
-- `rooms info <roomId|name>`
-- `rooms set <roomId|name> maxPlayers <n>`
-- `rooms rename <roomId|name> <newName>`
-
-`maxPlayers` defaults to 8 and is hard-capped at 8 for this phase.
-
-### UI-ready API model (internal)
-
-`RoomManager` provides methods that are ready to be reused by a future HTTP/WebSocket UI layer:
-
-- create/list/get/join/leave/close/rename/set-max.
-- listing returns `RoomSummary` (id, name, current/max players, map, mode, status, timestamps, protocol/region placeholders).
-- `RoomInfo` returns details + player list for debug/admin inspection.
-
-### Notes
-
-- Rooms are public and passwordless.
-- No persistence: process restart resets all rooms.
-- Metrics are tracked in memory (`rooms_created_total`, `rooms_closed_total`, `players_joined_total`, `players_left_total`, plus current counters via manager state).
+Built with [PixiJS](https://pixijs.com) (rendering), [Rust](https://www.rust-lang.org) + [Axum](https://github.com/tokio-rs/axum) (game server), and [React](https://react.dev) (UI). Physics runs as shared Rust/WASM logic on both client and server.

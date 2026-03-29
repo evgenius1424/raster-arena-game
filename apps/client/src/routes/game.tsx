@@ -28,10 +28,10 @@ function GamePage() {
         bootstrapped.current = true
 
         // Expose room/session config to the imperative game code before bootstrap runs
-        if (roomId) window.__NFF_ROOM_ID = roomId
-        if (sessionId) window.__NFF_SESSION_ID = sessionId
-        if (nickname) window.__NFF_NICKNAME = nickname
-        if (bots) window.__NFF_BOTS = bots
+        if (roomId) window.__GAME_ROOM_ID = roomId
+        if (sessionId) window.__GAME_SESSION_ID = sessionId
+        if (nickname) window.__GAME_NICKNAME = nickname
+        if (bots) window.__GAME_BOTS = bots
 
         import('../app/bootstrap.js').catch(console.error)
     }, [])
@@ -41,7 +41,7 @@ function GamePage() {
             <div id="game" style={{ width: '100%', height: '100%' }} />
             <div id="console">
                 <div id="console-content">
-                    NFF-WEB
+                    RASTER-ARENA-WEB
                     <br />
                     Press <strong>~</strong> to toggle console. Type{' '}
                     <strong>help</strong> for commands.

@@ -10,7 +10,7 @@ function LandingPage() {
     return (
         <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">
             <h1 className="text-white text-6xl font-bold tracking-widest uppercase select-none">
-                Need For Fun
+                Raster Arena
             </h1>
             <p className="text-gray-500 text-sm tracking-widest uppercase">
                 2D Arena Deathmatch

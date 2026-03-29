@@ -1,7 +1,7 @@
 const FALLBACK_WS_URL = 'ws://localhost:3001/ws'
-const FALLBACK_WSS_URL = 'wss://need-for-fun.duckdns.org/ws'
+const FALLBACK_WSS_URL = 'wss://raster-arena.duckdns.org/ws'
 const FALLBACK_HTTP_URL = 'http://localhost:3001'
-const FALLBACK_HTTPS_URL = 'https://need-for-fun.duckdns.org'
+const FALLBACK_HTTPS_URL = 'https://raster-arena.duckdns.org'
 
 function toSecureWsUrl(url) {
     if (!url) return ''

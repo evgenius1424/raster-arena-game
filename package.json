@@ -1,7 +1,7 @@
 {
-  "name": "need-for-fun",
+  "name": "raster-arena",
   "version": "0.0.0",
-  "description": "Need For Fun - 2D arena deathmatch",
+  "description": "Raster Arena - 2D arena deathmatch",
   "private": true,
   "packageManager": "npm@11.9.0",
   "workspaces": ["apps/*", "packages/*"],
@@ -16,13 +16,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/evgenius1424/need-for-fun"
+    "url": "https://github.com/evgenius1424/raster-arena"
   },
   "keywords": ["nfk", "quake3", "2d", "game"],
   "author": "evgenius1424",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/evgenius1424/need-for-fun/issues"
+    "url": "https://github.com/evgenius1424/raster-arena/issues"
   },
   "devDependencies": {
     "prettier": "^3.8.0",
