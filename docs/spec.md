@@ -1,5 +1,6 @@
 # VISUAL REBUILD SPEC — PixiJS from Scratch
-## Need-for-Fun · Incremental Implementation Plan v2
+
+## Raster Arena · Incremental Implementation Plan v2
 
 **Renderer:** PixiJS v8 (WebGPU/WebGL2)
 **Physics:** Untouched Rust/WASM (16ms tick, 62.5Hz)
@@ -70,11 +71,13 @@ Fire rates (ticks): Shaft 3, MG 5, Plasma 5, BFG 10, Gauntlet 20, GL 40, RL 40, 
 
 ## PHASE 1 — "HACKER MODE" FOUNDATION (Days 1–2)
 
-No textures, no sprites. Pure geometry. Neon wireframe aesthetic. The goal is to rip out existing rendering and replace it with a clean layered PixiJS structure where every game object is a colored primitive.
+No textures, no sprites. Pure geometry. Neon wireframe aesthetic. The goal is to rip out existing rendering and replace
+it with a clean layered PixiJS structure where every game object is a colored primitive.
 
 ### M1.1 · PixiJS app + layer scaffold
 
-Create the Application, the `world` container, and all named layer containers from the architecture diagram above. Wire the `app.ticker` to your existing game loop. Clear stage to `0x0a0a14` (near-black with blue tint).
+Create the Application, the `world` container, and all named layer containers from the architecture diagram above. Wire
+the `app.ticker` to your existing game loop. Clear stage to `0x0a0a14` (near-black with blue tint).
 
 All subsequent milestones add children to these layers — nothing goes directly into `world` or `stage`.
 
@@ -113,9 +116,11 @@ Position is interpolated: `renderX = prevX + (x - prevX) * alpha`.
 
 Two modes, matching existing logic:
 
-**Fit mode** (small maps): `mapW <= canvasW && mapH <= canvasH`. Scale `world` to fit viewport, center it. `scale = min(canvasW / mapPixelW, canvasH / mapPixelH, 1.6)`. The 1.6 cap prevents over-zoom.
+**Fit mode** (small maps): `mapW <= canvasW && mapH <= canvasH`. Scale `world` to fit viewport, center it.
+`scale = min(canvasW / mapPixelW, canvasH / mapPixelH, 1.6)`. The 1.6 cap prevents over-zoom.
 
-**Float mode** (large maps): `world.x = canvasW/2 - playerRenderX`, `world.y = canvasH/2 - playerRenderY`. Clamp so camera doesn't show past map edges.
+**Float mode** (large maps): `world.x = canvasW/2 - playerRenderX`, `world.y = canvasH/2 - playerRenderY`. Clamp so
+camera doesn't show past map edges.
 
 No smoothing yet — direct tracking. Smoothing comes in Phase 3.
 
@@ -134,7 +139,8 @@ Interpolate positions same as players.
 
 ### M1.6 · Hitscan traces
 
-Store active beams in an array: `{ x1, y1, x2, y2, color, width, age, maxAge }`. Draw into `beamLayer` (a single `Graphics` that gets cleared and redrawn each frame).
+Store active beams in an array: `{ x1, y1, x2, y2, color, width, age, maxAge }`. Draw into `beamLayer` (a single
+`Graphics` that gets cleared and redrawn each frame).
 
 ```
 Rail:     3px line, 0xff0000, maxAge 11 ticks, alpha fades with age
@@ -184,7 +190,9 @@ Use `PIXI.BitmapText` if you want better perf, or `PIXI.Text` with `resolution: 
 
 ### Checkpoint
 
-You have a neon wireframe game. All physics works. Bots fight. Explosions flash. Beams draw. HUD shows stats. It looks like TRON meets a prototype — and it's fully playable. Everything from here is purely visual improvement with zero gameplay risk.
+You have a neon wireframe game. All physics works. Bots fight. Explosions flash. Beams draw. HUD shows stats. It looks
+like TRON meets a prototype — and it's fully playable. Everything from here is purely visual improvement with zero
+gameplay risk.
 
 ---
 
@@ -228,7 +236,8 @@ Build the full `variantMap[rows][cols]` once on map load. Rebuild only if map ch
 
 ### M2.2 · Procedural tile atlas (no AI art yet)
 
-Before bringing in AI-generated tile art, draw all 16 variants procedurally using `Graphics` → `RenderTexture`. This ensures your auto-tiling logic works before you depend on external assets.
+Before bringing in AI-generated tile art, draw all 16 variants procedurally using `Graphics` → `RenderTexture`. This
+ensures your auto-tiling logic works before you depend on external assets.
 
 Each variant is 32×16. For each, draw:
 
@@ -248,6 +257,7 @@ Render all 16 into a single `RenderTexture` atlas (512×16). Store the atlas and
 Swap out the M1.2 `Graphics` rectangles for `PIXI.Sprite` instances in `tilesLayer`.
 
 For each brick cell:
+
 - Look up `variantMap[row][col]` → variant index 0–15.
 - Create a `Sprite` from the atlas frame at `(index * 32, 0, 32, 16)`.
 - Position at `col * 32, row * 16`.
@@ -257,9 +267,11 @@ Cache all tile sprites — only recreate on map change. This is a static layer.
 
 ### M2.4 · AI-generated tile atlas
 
-Now replace the procedural textures with real art. Generate a 512×16 PNG sprite sheet (16 variants, each 32×16, arranged horizontally).
+Now replace the procedural textures with real art. Generate a 512×16 PNG sprite sheet (16 variants, each 32×16, arranged
+horizontally).
 
 **Image AI prompt:**
+
 ```
 Pixel art tileset sprite sheet, 16 tiles arranged in a single horizontal row,
 each tile exactly 32 pixels wide and 16 pixels tall,
@@ -280,6 +292,7 @@ transparent background, pixel art, clean edges, no anti-aliasing
 ```
 
 **Hand-tuning needed:**
+
 - Edges of adjacent variants must align pixel-perfectly.
 - Top-exposed variants need a clearly visible lip (this is the platform surface players run on).
 - Interior variant should have subtle texture but not compete with gameplay objects.
@@ -315,7 +328,8 @@ Add idle bob: `sprite.y = baseY + Math.sin(tick * 0.1) * 2`.
 
 ### Checkpoint
 
-The map transforms from a grid of rectangles into a cohesive, carved-out arena. Tile edges connect properly. Items float on platforms. It suddenly looks like level design instead of a debug view.
+The map transforms from a grid of rectangles into a cohesive, carved-out arena. Tile edges connect properly. Items float
+on platforms. It suddenly looks like level design instead of a debug view.
 
 ---
 
@@ -337,7 +351,8 @@ each frame:
   world.y = canvasHalfH - cameraState.y
 ```
 
-Add facing lookahead: offset target 24px in the direction the player faces. This gives the player more visible space ahead of them.
+Add facing lookahead: offset target 24px in the direction the player faces. This gives the player more visible space
+ahead of them.
 
 Clamp to map edges so the camera never shows the void beyond the map boundary.
 
@@ -370,7 +385,8 @@ Add a setting toggle to disable shake.
 
 Create `bgLayer` as the first child of `stage`, behind `world`.
 
-Draw a vertical gradient: `0x08081a` (top) → `0x14142a` (bottom). Use a `Graphics` rect with fill gradient or a pre-rendered `Sprite`.
+Draw a vertical gradient: `0x08081a` (top) → `0x14142a` (bottom). Use a `Graphics` rect with fill gradient or a
+pre-rendered `Sprite`.
 
 This replaces the flat black void behind the map. Subtle but immediately adds mood.
 
@@ -385,7 +401,8 @@ each frame:
   alpha = baseBrightness + 0.15 * Math.sin(tick * 0.03 * speed + phase)
 ```
 
-Parallax: stars shift at 0.08× camera velocity. Since they're far away, they barely move — but when you notice it, it sells the depth.
+Parallax: stars shift at 0.08× camera velocity. Since they're far away, they barely move — but when you notice it, it
+sells the depth.
 
 Draw as `Graphics` circles or as tiny `Sprite` instances from a 2×2 white texture.
 
@@ -394,6 +411,7 @@ Draw as `Graphics` circles or as tiny `Sprite` instances from a 2×2 white textu
 Generate a seamless tileable background texture (512×512 or 1024×512).
 
 **Image AI prompt:**
+
 ```
 Seamless tileable game background texture, 512×512 pixels,
 dark sci-fi space station interior seen from far away,
@@ -406,19 +424,22 @@ painted or pixel art style
 ```
 
 **Integration:**
+
 - Create a `TilingSprite` in `bgLayer` (behind the starfield).
 - Size it to viewport dimensions × 1.5 (buffer for parallax movement).
 - Each frame: `tilingSprite.tilePosition.x = -cameraState.x * 0.15`.
 - `tilingSprite.tilePosition.y = -cameraState.y * 0.10`.
 - Alpha: 0.6 — must be subtle, never distract from gameplay.
 
-**Hand-tuning:** Adjust brightness. If it's too visible, darken it. The background exists to prevent the void from feeling empty, not to compete with tiles or players.
+**Hand-tuning:** Adjust brightness. If it's too visible, darken it. The background exists to prevent the void from
+feeling empty, not to compete with tiles or players.
 
 ### M3.6 · AI background art — mid layer
 
 Generate a second background layer with more defined shapes, slightly brighter.
 
 **Image AI prompt:**
+
 ```
 Seamless tileable parallax mid-layer for 2D game, 512×256 pixels,
 sci-fi industrial silhouettes: columns, walkways, gantries, pipes,
@@ -430,13 +451,15 @@ pixel art or painted style
 ```
 
 **Integration:**
+
 - Second `TilingSprite` in `bgLayer`, above the far layer.
 - Parallax at 0.30× camera velocity (moves more, feels closer).
 - Alpha: 0.3–0.4.
 
 ### M3.7 · Ambient particles
 
-Add 30–50 floating particles that drift through the viewport, drawn in `bgDecorLayer` (inside `world`, so they move with the camera but at full parallax speed — they feel "in the arena").
+Add 30–50 floating particles that drift through the viewport, drawn in `bgDecorLayer` (inside `world`, so they move with
+the camera but at full parallax speed — they feel "in the arena").
 
 ```
 each particle:
@@ -457,7 +480,8 @@ These are almost subliminal — you don't consciously notice them, but the world
 
 ### Checkpoint
 
-Moving through the map feels expansive. The camera glides, backgrounds shift at different depths, tiny particles drift by. The arena has atmosphere. It feels like a place, not a data structure.
+Moving through the map feels expansive. The camera glides, backgrounds shift at different depths, tiny particles drift
+by. The arena has atmosphere. It feels like a place, not a data structure.
 
 ---
 
@@ -468,6 +492,7 @@ Moving through the map feels expansive. The camera glides, backgrounds shift at 
 Generate a 12-frame walk cycle. Sheet layout: 12 frames at 48×48, single row (576×48 PNG).
 
 **Image AI prompt:**
+
 ```
 Pixel art character walk cycle sprite sheet,
 12 frames arranged in a single horizontal row,
@@ -486,8 +511,10 @@ consistent top-left lighting
 Generate for one skin first (e.g., blue accent). Other skins later.
 
 **Hand-tuning priorities:**
+
 1. Feet must consistently land at `y = 48` (bottom of frame) — this aligns with `PLAYER_HALF_H = 24` below center.
-2. The torso center-of-mass should be at approximately `y = 24` (frame center) — this is the physics center and weapon pivot.
+2. The torso center-of-mass should be at approximately `y = 24` (frame center) — this is the physics center and weapon
+   pivot.
 3. Frame-to-frame motion must be smooth — no limbs teleporting between frames.
 4. Character width should fill ~30px of the 48px frame (matching `PLAYER_SCALE_X = 0.667` scaling).
 5. Budget: 2–3 hours of pixel-by-pixel frame correction.
@@ -512,13 +539,15 @@ Position: `playerSprite.position.set(renderX, renderY)` where render position is
 
 Facing: `playerSprite.scale.x = facingLeft ? -PLAYER_SCALE_X : PLAYER_SCALE_X`.
 
-Frame selection: `frameIndex = Math.floor(animTick / 2) % 12` — advance every 2 physics ticks (32ms per frame, full cycle = 384ms).
+Frame selection: `frameIndex = Math.floor(animTick / 2) % 12` — advance every 2 physics ticks (32ms per frame, full
+cycle = 384ms).
 
 ### M4.3 · Idle animation
 
 Generate 8-frame idle sheet (384×48).
 
-**Image AI prompt:** Same character as walk, but standing still with subtle breathing motion — slight torso rise/fall, arms at rest. 8 frames, 48×48 each.
+**Image AI prompt:** Same character as walk, but standing still with subtle breathing motion — slight torso rise/fall,
+arms at rest. 8 frames, 48×48 each.
 
 State trigger: `vx == 0 && grounded && !crouch && !dead`.
 
@@ -527,18 +556,21 @@ Frame rate: every 4 ticks (64ms per frame, full cycle = 512ms). Slower than walk
 ### M4.4 · Jump + fall animations
 
 **Jump** — 6 frames (288×48):
+
 - Frame 1–2: legs compress (crouch-launch).
 - Frame 3–4: body extends upward, legs trail.
 - Frame 5–6: arms up, fully airborne pose.
 - Hold last frame while `vy < 0` (still ascending).
 
 **Fall** — 4 frames (192×48):
+
 - Frame 1: transition from jump apex.
 - Frame 2–3: arms out, legs angling down.
 - Frame 4: brace-for-landing pose.
 - Hold last frame while `vy > 0` (still descending).
 
 State triggers:
+
 ```
 jump: !grounded && vy < -0.3
 fall: !grounded && vy > 0.5
@@ -549,11 +581,13 @@ Transition: jump → fall happens naturally as `vy` crosses zero. No special han
 ### M4.5 · Crouch + die animations
 
 **Crouch** — 8 frames (384×32, note: shorter frame height):
+
 - Ducked pose, can double as crouch-idle and crouch-walk.
 - Apply `CROUCH_SCALE_FACTOR = 0.83` to `scale.y`.
 - Offset position by `CROUCH_Y_OFFSET = 8px` downward.
 
 **Die** — 12 frames (576×48):
+
 - Character collapses. Hold final frame, then fade `alpha` to 0 over 10 ticks.
 - State: `player.dead == true`. Highest priority — overrides all other states.
 
@@ -580,7 +614,8 @@ Fallback: if a sprite sheet for a state isn't loaded, fall back to `run` frames.
 
 ### M4.7 · Weapon sprite attachment
 
-Load 9 weapon PNGs. Each is a `Sprite` child of the player container, anchored at `(0, 0.5)` (pivot on the grip, barrel extends right).
+Load 9 weapon PNGs. Each is a `Sprite` child of the player container, anchored at `(0, 0.5)` (pivot on the grip, barrel
+extends right).
 
 ```
 weaponSprite.anchor.set(0, 0.5)
@@ -597,13 +632,15 @@ Aim angle interpolation: `lerpAngle(prevAim, aim, alpha)` — handle the ±π wr
 
 ### M4.8 · Bot rendering
 
-Bots use the exact same sprite system as the local player. Iterate all players (local + bots), run the same animation state machine, same interpolation, same weapon attachment.
+Bots use the exact same sprite system as the local player. Iterate all players (local + bots), run the same animation
+state machine, same interpolation, same weapon attachment.
 
 Differentiate by tint or skin: `sprite.tint = botColors[playerIndex]` or load different skin sheets.
 
 ### Checkpoint
 
-Animated characters run, jump, fall, crouch, and die. Weapons track the aim angle. Every entity in the game has visual identity. The core look of the game is locked in.
+Animated characters run, jump, fall, crouch, and die. Weapons track the aim angle. Every entity in the game has visual
+identity. The core look of the game is locked in.
 
 ---
 
@@ -611,7 +648,8 @@ Animated characters run, jump, fall, crouch, and die. Weapons track the aim angl
 
 ### M5.1 · Particle system setup
 
-Use `@pixi/particle-emitter` (v5+) or roll your own lightweight array-based system. A custom system is simpler for this game since all particles are basic:
+Use `@pixi/particle-emitter` (v5+) or roll your own lightweight array-based system. A custom system is simpler for this
+game since all particles are basic:
 
 ```
 particles = []
@@ -686,6 +724,7 @@ Replace single expanding circle (M1.7) with a multi-layer effect.
 **Large explosion (rocket, grenade, BFG):**
 
 Layer 1 — Core flash (into `fxLayer`):
+
 ```
 White circle, blendMode: 'add'
 scale: 0 → radius * 0.06 over 5 ticks
@@ -693,6 +732,7 @@ alpha: 1 → 0
 ```
 
 Layer 2 — Fireball:
+
 ```
 Filled circle, weapon color (orange/green)
 scale: 0 → radius * 0.1 over 15 ticks
@@ -700,6 +740,7 @@ alpha: 0.9 → 0
 ```
 
 Layer 3 — Shockwave ring:
+
 ```
 Circle outline (lineStyle, no fill), weapon color, 2px width
 scale: 0 → radius * 0.15 over 10 ticks
@@ -707,6 +748,7 @@ alpha: 0.7 → 0
 ```
 
 Layer 4 — Debris:
+
 ```
 8–12 small particle spawns radiating outward:
   speed: 1.5–3.5 px/tick, random angles
@@ -718,6 +760,7 @@ Layer 4 — Debris:
 ```
 
 Layer 5 — Smoke aftermath:
+
 ```
 3–4 smoke puffs at detonation point:
   size: 4–8, growing to 2×
@@ -735,6 +778,7 @@ Same structure but smaller — radius 15, fewer debris (4–6), no smoke afterma
 On weapon fire, spawn a short-lived additive-blended flash at muzzle tip.
 
 Muzzle position:
+
 ```
 muzzleX = playerX + Math.cos(aimAngle) * PROJECTILE_OFFSET[weaponId]
 muzzleY = playerY + Math.sin(aimAngle) * PROJECTILE_OFFSET[weaponId]
@@ -744,6 +788,7 @@ Hitscan: MG ~24, Shotgun ~28, Rail ~36, Shaft ~20, Gauntlet ~13
 ```
 
 Effect per weapon:
+
 ```
 MG:       small yellow circle, radius 4, blendMode 'add', 2 ticks
 Shotgun:  large orange cone-ish flash, radius 8, 3 ticks
@@ -765,17 +810,21 @@ fxLayer.filters = [new BloomFilter({ strength: 3, quality: 4 })]
 beamLayer.filters = [new BloomFilter({ strength: 2.5, quality: 4 })]
 ```
 
-This makes all projectiles, beams, and explosions physically glow on screen. Plasma balls become neon orbs. Rail shots become searing beams. Explosions become blinding flashes.
+This makes all projectiles, beams, and explosions physically glow on screen. Plasma balls become neon orbs. Rail shots
+become searing beams. Explosions become blinding flashes.
 
-**Performance note:** bloom is expensive. Only apply to the layers that benefit (not tiles or entities). If FPS drops, reduce `quality` to 2 or disable on low-end devices.
+**Performance note:** bloom is expensive. Only apply to the layers that benefit (not tiles or entities). If FPS drops,
+reduce `quality` to 2 or disable on low-end devices.
 
-Alternative if `@pixi/filter-bloom` isn't available: draw glow manually with additive-blended larger copies of each light source at 30% alpha.
+Alternative if `@pixi/filter-bloom` isn't available: draw glow manually with additive-blended larger copies of each
+light source at 30% alpha.
 
 ### M5.7 · Enhanced beam rendering
 
 Upgrade the simple lines from M1.6 into multi-layer beams:
 
 **Railgun beam** (3 layers):
+
 ```
 Outer glow:  lineWidth = 8, color = railColor, alpha = 0.35, blendMode 'add'
 Core:        lineWidth = 3, color = white (0xffffff), alpha = 1.0
@@ -786,6 +835,7 @@ Terminal circle at hit point: radius 4, railColor, same fade
 ```
 
 **Shaft beam** (3 layers):
+
 ```
 Outer:  lineWidth = 8, 0x2b6cff, alpha 0.25, blendMode 'add'
 Mid:    lineWidth = 4, 0x45c8ff, alpha 0.65, per-frame jitter ±2.5px
@@ -794,6 +844,7 @@ Continuous while firing, disappears 6 ticks after trigger release
 ```
 
 **MG tracer** (optional upgrade):
+
 ```
 1px yellow line from muzzle to hit, 3-tick fade
 Small yellow particle burst (3–4 sparks) at hit point
@@ -822,17 +873,20 @@ each dust particle:
 ### M5.9 · Damage + status effects
 
 **Damage flash:**
+
 - On taking damage: set `damageFlashTicks = 3`.
 - During flash: `playerSprite.tint = 0xff4444` (red tint).
 - After flash: restore `playerSprite.tint = 0xffffff`.
 
 **Spawn protection** (when `spawnProtection > 0`):
+
 - Draw a pulsing circle behind player in `fxLayer`.
 - Radius: 26px, color: `0x88ffff`, alpha: `0.25 + 0.15 * Math.sin(tick * 0.3)`.
 - Draw with `blendMode: 'add'` for glow effect.
 - Fade out over last 20 ticks: `alpha *= spawnProtection / 20` when < 20.
 
 **Quad damage** (when `quadDamage > 0`):
+
 - `playerSprite.tint = 0xcc88ff` (purple tint).
 - Purple glow ring behind player: radius 30, alpha 0.2, slow pulse.
 - Every 4 ticks: spawn a tiny purple spark particle drifting upward from player.
@@ -842,26 +896,32 @@ each dust particle:
 Upgrade from flat shapes (M1.5) to glowing sprites:
 
 **Rocket:**
+
 - Core: 16×8 sprite (or Graphics shape), rotated by velocity.
 - Glow: additive-blended circle behind it, radius 12, 0xff4400, alpha 0.4.
 
 **Plasma:**
+
 - Core: 8px circle, 0x00ffff.
 - Glow: additive circle, radius 14, 0x00aaff, alpha 0.3.
 - Pulsing: `glowAlpha = 0.3 + 0.1 * Math.sin(tick * 0.5)`.
 
 **BFG:**
+
 - Core: 16px circle, 0x00ff00.
 - Glow: additive circle, radius 28, 0x00ff00, alpha 0.35.
 - Pulsing scale: `1.0 + 0.15 * Math.sin(tick * 0.3)`.
 
 **Grenade:**
+
 - Core: 6px dark gray circle.
 - After 60 ticks (of 100 fuse): add blinking red dot, toggles every 5 ticks.
 
 ### Checkpoint
 
-Firing feels heavy. Explosions light up the screen. Smoke curls from rockets. Beams sear across the arena. Bloom makes everything glow. The game has juice. This is the phase where it stops feeling like a student project and starts feeling like a modern indie game.
+Firing feels heavy. Explosions light up the screen. Smoke curls from rockets. Beams sear across the arena. Bloom makes
+everything glow. The game has juice. This is the phase where it stops feeling like a student project and starts feeling
+like a modern indie game.
 
 ---
 
@@ -872,6 +932,7 @@ Firing feels heavy. Explosions light up the screen. Smoke curls from rockets. Be
 Replace the M2.5 placeholder shapes with actual sprites. Generate 7 item sprites at 32×32 PNG each.
 
 **Image AI prompts (one per item):**
+
 ```
 Pixel art game pickup icon, 32×32 pixels, transparent background,
 [ITEM_DESCRIPTION], glowing, floating feel,
@@ -888,6 +949,7 @@ Items:
 ```
 
 **Integration:**
+
 - Load sprites, create one `Sprite` per map item.
 - Scale: `TILE_H * 1.2 / Math.max(tex.width, tex.height)` = `19.2 / 32 = 0.6`.
 - Bob animation: `sprite.y = baseY + Math.sin(tick * 0.1) * 2`.
@@ -907,7 +969,8 @@ Mega health / Quad:
   Bigger flash (radius 20), more particles (8 colored sparks), screen shake (trauma += 0.08)
 ```
 
-Store rising text as a `PIXI.Text` (or `BitmapText`) in `fxLayer`, update position and alpha each frame, remove when alpha reaches 0.
+Store rising text as a `PIXI.Text` (or `BitmapText`) in `fxLayer`, update position and alpha each frame, remove when
+alpha reaches 0.
 
 ### M6.3 · Weapon pickup sprites
 
@@ -941,7 +1004,8 @@ Armor bar (below health bar, 14px gap):
   maxArmor = 200
 ```
 
-Low health effect: when `health < 25`, pulse the bar alpha `0.7 + 0.3 * Math.sin(tick * 0.4)` and add a subtle red vignette overlay on screen edges.
+Low health effect: when `health < 25`, pulse the bar alpha `0.7 + 0.3 * Math.sin(tick * 0.4)` and add a subtle red
+vignette overlay on screen edges.
 
 ### M6.5 · Weapon rack display
 
@@ -996,7 +1060,8 @@ Top-left corner:
 
 ### Checkpoint
 
-The game has a complete, polished UI. Every interaction — picking up items, killing enemies, taking damage, respawning — has visual feedback. The HUD is clean and informative. It looks and feels professional.
+The game has a complete, polished UI. Every interaction — picking up items, killing enemies, taking damage, respawning —
+has visual feedback. The HUD is clean and informative. It looks and feels professional.
 
 ---
 
@@ -1024,6 +1089,7 @@ const THEMES = {
 ```
 
 Map file specifies theme (or defaults to `sci_fi`). On map load:
+
 1. Load theme-specific tile atlas.
 2. Swap background `TilingSprite` textures.
 3. Reconfigure ambient particle color/behavior.
@@ -1034,6 +1100,7 @@ Map file specifies theme (or defaults to `sci_fi`). On map load:
 For each of the 4 themes, generate with AI:
 
 **Tile atlas** (512×16, 16 variants):
+
 ```
 Ruins:  crumbling stone blocks, mossy edges, warm grays and desaturated greens
 Lava:   volcanic rock, glowing orange cracks between tiles, black base
@@ -1042,6 +1109,7 @@ Sci-fi: (already done in M2.4, polish here)
 ```
 
 **Background far** (512×512, seamless):
+
 ```
 Ruins:  ancient stone arches, foggy depth, dim torchlight
 Lava:   lava cavern, orange glow from below, dark ceiling
@@ -1050,6 +1118,7 @@ Sci-fi: (already done in M3.5, polish here)
 ```
 
 **Background mid** (512×256, semi-transparent):
+
 ```
 Ruins:  broken pillars and rubble silhouettes
 Lava:   stalactites and lava drip silhouettes
@@ -1075,15 +1144,19 @@ Adjust spawn rate, speed, size, and color per theme config.
 Generate 6 color variants of each sprite sheet. Two approaches:
 
 **Approach A — Palette swap (less AI work, more code):**
+
 - Generate one base skin with AI.
-- Write a palette-swap function: load sprite to offscreen canvas, `getImageData`, remap hue ranges, `putImageData`, create new `BaseTexture` from the canvas.
+- Write a palette-swap function: load sprite to offscreen canvas, `getImageData`, remap hue ranges, `putImageData`,
+  create new `BaseTexture` from the canvas.
 - Define 6 palettes: blue, red, white, dark, brown, "nuker" (orange/flame).
 
 **Approach B — Full AI generation (more AI work, less code):**
+
 - Generate all 6 skins separately with AI, specifying accent color in each prompt.
 - More consistent quality but 6× the generation + hand-tuning work.
 
-Recommendation: Approach A for speed, Approach B for quality. Start with A, replace individual skins with B later if they look bad.
+Recommendation: Approach A for speed, Approach B for quality. Start with A, replace individual skins with B later if
+they look bad.
 
 ### Checkpoint
 
@@ -1098,6 +1171,7 @@ Recommendation: Approach A for speed, Approach B for quality. Start with A, repl
 Replace any remaining placeholder shapes with actual sprites:
 
 **Projectile sprites** (4 PNGs):
+
 ```
 Rocket:  16×8, metallic body, orange nose cone
 Grenade: 12×12, dark sphere, red indicator light
@@ -1150,13 +1224,17 @@ On player death:
 
 ### M8.5 · Performance optimization
 
-1. **Tile caching:** render all tiles to a single `RenderTexture` on map load. Draw that as one `Sprite` each frame instead of hundreds of individual tile sprites. Rebuild only on map change.
+1. **Tile caching:** render all tiles to a single `RenderTexture` on map load. Draw that as one `Sprite` each frame
+   instead of hundreds of individual tile sprites. Rebuild only on map change.
 
-2. **Object pooling:** pre-allocate particle objects. On "death," return to pool instead of splicing array. On spawn, pull from pool.
+2. **Object pooling:** pre-allocate particle objects. On "death," return to pool instead of splicing array. On spawn,
+   pull from pool.
 
-3. **Frustum culling:** only draw entities/projectiles/particles within the viewport bounds (with 100px margin). Skip `sprite.visible = false` for offscreen objects.
+3. **Frustum culling:** only draw entities/projectiles/particles within the viewport bounds (with 100px margin). Skip
+   `sprite.visible = false` for offscreen objects.
 
-4. **Batch rendering:** PixiJS batches sprites automatically. Avoid `Graphics` for per-frame draws where possible — use pre-rendered `RenderTexture` sprites instead.
+4. **Batch rendering:** PixiJS batches sprites automatically. Avoid `Graphics` for per-frame draws where possible — use
+   pre-rendered `RenderTexture` sprites instead.
 
 5. **Profile target:** <3ms total render time at 60fps on mid-range hardware. Use Chrome DevTools Performance tab.
 
@@ -1196,6 +1274,7 @@ Production quality. Every visual element is polished, performant, and configurab
 ## AI PROMPT TEMPLATES
 
 **Code generation (Claude):**
+
 ```
 Milestone M[X.Y] of my PixiJS game renderer.
 I need: [specific function/module]
@@ -1206,6 +1285,7 @@ Current code structure: [paste the module being extended]
 ```
 
 **Sprite sheets (image AI):**
+
 ```
 Pixel art sprite sheet, [SUBJECT],
 [COUNT] frames, each [W]×[H] pixels, single horizontal row,
@@ -1216,6 +1296,7 @@ no anti-aliasing, limited palette (16-24 colors)
 ```
 
 **Tile atlas (image AI):**
+
 ```
 Pixel art tileset, 16 tiles in a single horizontal row,
 each tile 32×16 pixels, total 512×16 pixels,
@@ -1225,6 +1306,7 @@ transparent background, clean pixel art
 ```
 
 **Background textures (image AI):**
+
 ```
 Seamless tileable game background, [SIZE]×[SIZE] pixels,
 [THEME DESCRIPTION], very dark (avg brightness <25/255),
