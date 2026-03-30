@@ -34,6 +34,7 @@ function GamePage() {
         if (bots) window.__GAME_BOTS = bots
 
         import('../app/bootstrap.js').catch(console.error)
+        // import('../app/bootstrap-v2.ts').catch(console.error)
     }, [])
 
     return (
@@ -43,8 +44,8 @@ function GamePage() {
                 <div id="console-content">
                     RASTER-ARENA-WEB
                     <br />
-                    Press <strong>~</strong> to toggle console. Type{' '}
-                    <strong>help</strong> for commands.
+                    Press <strong>~</strong> to toggle console. Type <strong>help</strong> for
+                    commands.
                 </div>
                 <input id="console-input" placeholder="Enter command..." />
             </div>

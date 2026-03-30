@@ -14,38 +14,33 @@ const STYLES = {
         fontSize: 32,
         fontWeight: 'bold',
         fill: 0x00ff00,
-        stroke: 0x000000,
-        strokeThickness: 3,
+        stroke: { color: 0x000000, width: 3 },
     },
     armor: {
         fontFamily: 'Arial',
         fontSize: 24,
         fontWeight: 'bold',
         fill: 0xffff00,
-        stroke: 0x000000,
-        strokeThickness: 2,
+        stroke: { color: 0x000000, width: 2 },
     },
     weapon: {
         fontFamily: 'Arial',
         fontSize: 20,
         fill: 0xffffff,
-        stroke: 0x000000,
-        strokeThickness: 2,
+        stroke: { color: 0x000000, width: 2 },
     },
     ammo: {
         fontFamily: 'Arial',
         fontSize: 28,
         fontWeight: 'bold',
         fill: 0xffffff,
-        stroke: 0x000000,
-        strokeThickness: 2,
+        stroke: { color: 0x000000, width: 2 },
     },
     netDebug: {
         fontFamily: 'monospace',
         fontSize: 12,
         fill: 0xa8e6ff,
-        stroke: 0x000000,
-        strokeThickness: 2,
+        stroke: { color: 0x000000, width: 2 },
     },
 }
 
@@ -78,7 +73,7 @@ export function updateHUD(player, hud) {
 }
 
 function createText(text, style, { x = 0, y = 0, anchorX = 0, anchorY = 0 } = {}) {
-    const t = new PIXI.Text(text, style)
+    const t = new PIXI.Text({ text, style })
     t.x = x
     t.y = y
     t.anchor.set(anchorX, anchorY)

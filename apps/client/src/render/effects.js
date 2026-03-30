@@ -258,9 +258,8 @@ function renderRailShot(shot) {
         0xffffff,
         alpha,
     )
-    railLines.beginFill(coreColor, alpha * 0.6)
-    railLines.drawCircle(shot.x2, shot.y2, Math.max(4, width * 0.75))
-    railLines.endFill()
+    railLines.circle(shot.x2, shot.y2, Math.max(4, width * 0.75))
+    railLines.fill({ color: coreColor, alpha: alpha * 0.6 })
 }
 
 function renderShaftShot(shot) {
@@ -295,12 +294,8 @@ function tintColor(color, amount) {
 
 function renderBulletHit(hit) {
     const alpha = (1 - hit.age / hit.maxAge) * hit.alpha
-    bulletImpacts.beginFill(0xc08900, alpha * 0.4)
-    bulletImpacts.drawCircle(hit.x, hit.y, hit.radius * 2)
-    bulletImpacts.endFill()
-    bulletImpacts.beginFill(hit.color, alpha)
-    bulletImpacts.drawCircle(hit.x, hit.y, hit.radius)
-    bulletImpacts.endFill()
+    bulletImpacts.circle(hit.x, hit.y, hit.radius * 2).fill({ color: 0xc08900, alpha: alpha * 0.4 })
+    bulletImpacts.circle(hit.x, hit.y, hit.radius).fill({ color: hit.color, alpha })
 }
 
 function renderGauntletHit(hit) {
@@ -434,9 +429,9 @@ function getNormal(shot, scale) {
 }
 
 function drawLine(g, x1, y1, x2, y2, width, color, alpha) {
-    g.lineStyle(width, color, alpha)
     g.moveTo(x1, y1)
     g.lineTo(x2, y2)
+    g.stroke({ width, color, alpha })
 }
 
 function lerp(a, b, t) {

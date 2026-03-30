@@ -20,9 +20,7 @@ export function initPlayerSprites(player) {
     if (!localPlayer.sprite) return
 
     localPlayer.center = new PIXI.Graphics()
-    localPlayer.center.beginFill(0x0000aa)
-    localPlayer.center.drawRect(-1, -1, 2, 2)
-    localPlayer.center.endFill()
+    localPlayer.center.rect(-1, -1, 2, 2).fill(0x0000aa)
     world.addChild(localPlayer.center)
 
     localPlayer.weapon = createWeaponSprite()

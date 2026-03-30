@@ -31,13 +31,12 @@ world.addChild(bulletImpacts)
 world.addChild(gauntletSparks)
 
 async function initApp() {
-    let app
+    const app = new PIXI.Application()
     try {
-        app = new PIXI.Application({
+        await app.init({
             width: innerWidth,
             height: innerHeight,
-            backgroundColor: 0x262626,
-            forceCanvas: false,
+            background: 0x262626,
             autoDensity: true,
             resolution: Math.min(devicePixelRatio || 1, 2),
         })
@@ -45,7 +44,7 @@ async function initApp() {
         Console.writeText(`renderer init failed: ${err?.message ?? err}`)
         throw err
     }
-    app.view.style.display = 'block'
-    document.getElementById('game').appendChild(app.view)
+    app.canvas.style.display = 'block'
+    document.getElementById('game').appendChild(app.canvas)
     return app
 }
