@@ -11,7 +11,7 @@ use tokio::time::interval;
 use tracing::{debug, info, warn};
 
 use crate::binary::{
-    encode_kicked, encode_player_joined, encode_player_left, encode_room_closed, encode_room_state,
+    encode_player_joined, encode_player_left, encode_room_state,
     player_snapshot_from_state, ItemSnapshot, SnapshotEncoder,
 };
 use crate::binary::{EffectEvent, PlayerSnapshot};
@@ -58,59 +58,14 @@ pub enum RoomStatus {
     Closed,
 }
 
-impl RoomStatus {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Created => "created",
-            Self::Running => "running",
-            Self::Closing => "closing",
-            Self::Closed => "closed",
-        }
-    }
-
-    pub fn rank(self) -> u8 {
-        match self {
-            Self::Running => 0,
-            Self::Created => 1,
-            Self::Closing => 2,
-            Self::Closed => 3,
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct RoomConfig {
     pub name: String,
     pub max_players: usize,
-    pub map_id: String,
-    pub mode: String,
     pub tick_rate: u64,
-    pub protocol_version: String,
-    pub region: Option<String>,
 }
 
-#[derive(Clone, Debug)]
-pub struct RoomSummary {
-    pub room_id: String,
-    pub name: String,
-    pub current_players: usize,
-    pub max_players: usize,
-    pub map_id: String,
-    pub mode: String,
-    pub tick_rate: u64,
-    pub status: RoomStatus,
-    pub created_at_ms: u64,
-    pub last_activity_at_ms: u64,
-    pub protocol_version: String,
-    pub region: Option<String>,
-}
-
-#[derive(Clone, Debug)]
-pub struct RoomInfo {
-    pub summary: RoomSummary,
-    pub players: Vec<(u64, String)>,
-    pub tick: u64,
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum JoinError {
@@ -162,31 +117,10 @@ enum RoomCmd {
     Leave {
         player_id: PlayerId,
     },
-    Kick {
-        player_id: PlayerId,
-        reason: String,
-        response: oneshot::Sender<bool>,
-    },
     Input {
         player_id: PlayerId,
         seq: u64,
         input: PlayerInput,
-    },
-    Summary {
-        response: oneshot::Sender<RoomSummary>,
-    },
-    Info {
-        response: oneshot::Sender<RoomInfo>,
-    },
-    Rename {
-        name: String,
-    },
-    SetMaxPlayers {
-        max_players: usize,
-        response: oneshot::Sender<Result<(), String>>,
-    },
-    BeginClose {
-        reason: String,
     },
     #[cfg(test)]
     ContainsPlayer {
@@ -255,71 +189,6 @@ impl RoomHandle {
         });
     }
 
-    pub async fn summary(&self) -> Option<RoomSummary> {
-        let (tx, rx) = oneshot::channel();
-        if self
-            .tx
-            .send(RoomCmd::Summary { response: tx })
-            .await
-            .is_err()
-        {
-            return None;
-        }
-        rx.await.ok()
-    }
-
-    pub async fn info(&self) -> Option<RoomInfo> {
-        let (tx, rx) = oneshot::channel();
-        if self.tx.send(RoomCmd::Info { response: tx }).await.is_err() {
-            return None;
-        }
-        rx.await.ok()
-    }
-
-    pub fn rename(&self, name: String) {
-        let _ = self.tx.try_send(RoomCmd::Rename { name });
-    }
-
-    pub async fn set_max_players(&self, max_players: usize) -> Result<(), String> {
-        let (tx, rx) = oneshot::channel();
-        if self
-            .tx
-            .send(RoomCmd::SetMaxPlayers {
-                max_players,
-                response: tx,
-            })
-            .await
-            .is_err()
-        {
-            return Err("room_closed".to_string());
-        }
-        rx.await.unwrap_or_else(|_| Err("room_closed".to_string()))
-    }
-
-    pub async fn begin_close(&self, reason: String) -> Result<(), String> {
-        self.tx
-            .send(RoomCmd::BeginClose { reason })
-            .await
-            .map_err(|_| "room_closed".to_string())
-    }
-
-    pub async fn kick(&self, player_id: PlayerId, reason: String) -> bool {
-        let (tx, rx) = oneshot::channel();
-        if self
-            .tx
-            .send(RoomCmd::Kick {
-                player_id,
-                reason,
-                response: tx,
-            })
-            .await
-            .is_err()
-        {
-            return false;
-        }
-        rx.await.unwrap_or(false)
-    }
-
     #[cfg(test)]
     pub async fn contains_player(&self, player_id: PlayerId) -> bool {
         let (response_tx, response_rx) = oneshot::channel();
@@ -343,10 +212,7 @@ struct RoomTask {
     map: Arc<GameMap>,
     config: RoomConfig,
     status: RoomStatus,
-    created_at: Instant,
-    last_activity_at: Instant,
     server_started_at: Instant,
-    close_reason: Option<String>,
     rx: mpsc::Receiver<RoomCmd>,
     tick: Tick,
     items: Vec<MapItem>,
@@ -409,11 +275,6 @@ impl PlayerStore {
         self.player_index.contains_key(&player_id)
     }
 
-    fn player_tx(&self, player_id: PlayerId) -> Option<mpsc::Sender<Bytes>> {
-        let idx = self.player_index.get(&player_id).copied()?;
-        Some(self.conns[idx].tx.clone())
-    }
-
     fn insert(&mut self, player: PlayerConn, state: PlayerState) {
         let idx = self.conns.len();
         self.player_index.insert(player.id, idx);
@@ -458,7 +319,6 @@ impl RoomTask {
         let seed = room_id.as_str().bytes().fold(0_u64, |acc, byte| {
             acc.wrapping_mul(31).wrapping_add(byte as u64)
         });
-        let now = Instant::now();
 
         Self {
             room_id,
@@ -466,10 +326,7 @@ impl RoomTask {
             map: Arc::new(map),
             config,
             status: RoomStatus::Created,
-            created_at: now,
-            last_activity_at: now,
             server_started_at,
-            close_reason: None,
             rx,
             tick: Tick(0),
             projectiles: Vec::new(),
@@ -560,22 +417,6 @@ impl RoomTask {
                     self.transition_empty_if_needed();
                 }
             }
-            RoomCmd::Kick {
-                player_id,
-                reason,
-                response,
-            } => {
-                let player_tx = self.player_store.player_tx(player_id);
-                let removed = self.remove_player(player_id);
-                if removed {
-                    self.broadcast(encode_player_left(player_id.0).into());
-                    if let Some(player_tx) = player_tx {
-                        let _ = player_tx.try_send(Bytes::from(encode_kicked(&reason)));
-                    }
-                    self.transition_empty_if_needed();
-                }
-                let _ = response.send(removed);
-            }
             RoomCmd::Input {
                 player_id,
                 seq,
@@ -588,45 +429,6 @@ impl RoomTask {
                     }
                 }
             }
-            RoomCmd::Summary { response } => {
-                let _ = response.send(self.summary());
-            }
-            RoomCmd::Info { response } => {
-                let players = self
-                    .player_store
-                    .conns()
-                    .iter()
-                    .map(|p| (p.id.0, p.username.clone()))
-                    .collect();
-                let _ = response.send(RoomInfo {
-                    summary: self.summary(),
-                    players,
-                    tick: self.tick.0,
-                });
-            }
-            RoomCmd::Rename { name } => {
-                self.config.name = name;
-                self.last_activity_at = Instant::now();
-            }
-            RoomCmd::SetMaxPlayers {
-                max_players,
-                response,
-            } => {
-                if max_players < self.player_store.len() {
-                    let _ = response.send(Err("maxPlayers_lower_than_current_players".to_string()));
-                } else {
-                    self.config.max_players = max_players;
-                    self.last_activity_at = Instant::now();
-                    let _ = response.send(Ok(()));
-                }
-            }
-            RoomCmd::BeginClose { reason } => {
-                self.close_reason = Some(reason.clone());
-                self.status = RoomStatus::Closing;
-                let payload = Bytes::from(encode_room_closed(&reason));
-                self.broadcast(payload);
-                return true;
-            }
             #[cfg(test)]
             RoomCmd::ContainsPlayer {
                 player_id,
@@ -636,29 +438,6 @@ impl RoomTask {
             }
         }
         false
-    }
-
-    fn summary(&self) -> RoomSummary {
-        RoomSummary {
-            room_id: self.room_id.as_str().to_string(),
-            name: self.config.name.clone(),
-            current_players: self.player_store.len(),
-            max_players: self.config.max_players,
-            map_id: self.config.map_id.clone(),
-            mode: self.config.mode.clone(),
-            tick_rate: self.config.tick_rate,
-            status: self.status,
-            created_at_ms: self
-                .created_at
-                .duration_since(self.server_started_at)
-                .as_millis() as u64,
-            last_activity_at_ms: self
-                .last_activity_at
-                .duration_since(self.server_started_at)
-                .as_millis() as u64,
-            protocol_version: self.config.protocol_version.clone(),
-            region: self.config.region.clone(),
-        }
     }
 
     fn handle_join(
@@ -697,7 +476,6 @@ impl RoomTask {
         };
 
         self.status = RoomStatus::Running;
-        self.last_activity_at = Instant::now();
 
         let room_state = Bytes::from(encode_room_state(
             self.room_id.as_str(),
@@ -718,7 +496,6 @@ impl RoomTask {
     fn remove_player(&mut self, player_id: PlayerId) -> bool {
         let removed = self.player_store.remove(player_id);
         if removed {
-            self.last_activity_at = Instant::now();
             self.player_store.validate();
         }
         removed
@@ -960,11 +737,7 @@ mod tests {
         RoomConfig {
             name: name.to_string(),
             max_players,
-            map_id: "test".to_string(),
-            mode: "dm".to_string(),
             tick_rate: 60,
-            protocol_version: "1".to_string(),
-            region: None,
         }
     }
 

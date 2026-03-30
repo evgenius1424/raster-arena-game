@@ -3,8 +3,8 @@ use bytes::{BufMut, Bytes, BytesMut};
 use crate::constants::SNAPSHOT_BUFFER_RING;
 
 pub use binary_protocol::{
-    decode_client_message, encode_join_rejected, encode_kicked, encode_player_joined,
-    encode_player_left, encode_pong, encode_room_closed, encode_welcome, ClientMsg, EffectEvent,
+    decode_client_message, encode_join_rejected, encode_player_joined,
+    encode_player_left, encode_pong, encode_welcome, ClientMsg, EffectEvent,
     ItemSnapshot, PlayerSnapshot, ProjectileSnapshot,
 };
 
