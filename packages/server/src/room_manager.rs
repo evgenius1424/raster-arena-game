@@ -5,21 +5,18 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use bytes::Bytes;
-use futures_util::future::join_all;
 use tokio::sync::{mpsc, Mutex, RwLock};
-use tracing::info;
 use uuid::Uuid;
 
 use crate::binary::encode_join_rejected;
 use crate::map::GameMap;
-use crate::room::{PlayerId, RoomConfig, RoomHandle, RoomId, RoomInfo, RoomSummary};
+use crate::room::{PlayerId, RoomConfig, RoomHandle, RoomId};
 
 pub const ROOM_MAX_PLAYERS_HARD_CAP: usize = 8;
 
 #[derive(Default)]
 pub struct RoomMetrics {
     pub rooms_created_total: AtomicU64,
-    pub rooms_closed_total: AtomicU64,
     pub players_joined_total: AtomicU64,
     pub players_left_total: AtomicU64,
 }
@@ -41,18 +38,14 @@ pub struct JoinSuccess {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum RoomCreateError {
-    NameAlreadyExists,
     InvalidMaxPlayers(String),
-    MapNotFound,
     Other(String),
 }
 
 impl fmt::Display for RoomCreateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NameAlreadyExists => write!(f, "room_name_already_exists"),
             Self::InvalidMaxPlayers(msg) => write!(f, "{msg}"),
-            Self::MapNotFound => write!(f, "map_not_found"),
             Self::Other(msg) => write!(f, "{msg}"),
         }
     }
@@ -70,14 +63,6 @@ impl RoomManager {
             max_rooms,
             max_players_per_room: effective_max_players,
         }
-    }
-
-    pub async fn create_room(
-        &self,
-        config: RoomConfig,
-        map: GameMap,
-    ) -> Result<Arc<RoomHandle>, RoomCreateError> {
-        self.create_room_locked(config, map).await
     }
 
     pub async fn get_or_create_room(
@@ -114,74 +99,6 @@ impl RoomManager {
             .rooms_created_total
             .fetch_add(1, Ordering::Relaxed);
         Ok(room)
-    }
-
-    async fn create_room_locked(
-        &self,
-        config: RoomConfig,
-        map: GameMap,
-    ) -> Result<Arc<RoomHandle>, RoomCreateError> {
-        if config.max_players == 0 || config.max_players > self.max_players_per_room {
-            return Err(RoomCreateError::InvalidMaxPlayers(format!(
-                "maxPlayers must be 1..={}",
-                self.max_players_per_room
-            )));
-        }
-
-        let mut rooms = self.rooms.write().await;
-        let mut names = self.names.write().await;
-
-        if names.contains_key(&config.name) {
-            return Err(RoomCreateError::NameAlreadyExists);
-        }
-
-        if rooms.len() >= self.max_rooms {
-            return Err(RoomCreateError::Other("server room limit reached".to_string()));
-        }
-
-        let room_id = RoomId::from(Uuid::new_v4().simple().to_string());
-        let room = RoomHandle::new(room_id.clone(), map, config.clone(), self.server_started_at);
-        rooms.insert(room_id.clone(), Arc::clone(&room));
-        names.insert(config.name, room_id);
-        self.metrics
-            .rooms_created_total
-            .fetch_add(1, Ordering::Relaxed);
-        Ok(room)
-    }
-
-    pub async fn list_rooms(&self) -> Vec<RoomSummary> {
-        let handles: Vec<Arc<RoomHandle>> = self.rooms.read().await.values().cloned().collect();
-        let mut rooms: Vec<RoomSummary> = join_all(
-            handles
-                .into_iter()
-                .map(|room| async move { room.summary().await }),
-        )
-        .await
-        .into_iter()
-        .flatten()
-        .filter(|room| room.status.as_str() != "closed")
-        .collect();
-
-        rooms.sort_by(|a, b| {
-            a.status
-                .rank()
-                .cmp(&b.status.rank())
-                .then(b.current_players.cmp(&a.current_players))
-                .then(b.last_activity_at_ms.cmp(&a.last_activity_at_ms))
-        });
-        rooms
-    }
-
-    pub async fn get_room_by_ref(&self, room_ref: &str) -> Option<Arc<RoomHandle>> {
-        let rooms = self.rooms.read().await;
-        let direct_id = RoomId::from(room_ref);
-        if let Some(room) = rooms.get(&direct_id) {
-            return Some(Arc::clone(room));
-        }
-
-        let names = self.names.read().await;
-        let mapped_id = names.get(room_ref)?;
-        rooms.get(mapped_id).cloned()
     }
 
     pub async fn join_room(
@@ -222,134 +139,7 @@ impl RoomManager {
         }
     }
 
-    fn room_id_from_ref(names: &HashMap<String, RoomId>, room_ref: &str) -> Option<RoomId> {
-        if let Some(id) = names.get(room_ref) {
-            return Some(id.clone());
-        }
-        Some(RoomId::from(room_ref))
-    }
-
-    pub async fn close_room(&self, room_ref: &str, reason: &str) -> Result<(), String> {
-        let mut rooms = self.rooms.write().await;
-        let mut names = self.names.write().await;
-
-        let room_id =
-            Self::room_id_from_ref(&names, room_ref).ok_or_else(|| "room_not_found".to_string())?;
-        let room = rooms
-            .remove(&room_id)
-            .ok_or_else(|| "room_not_found".to_string())?;
-
-        let dropped_name = names.iter().find_map(|(name, id)| {
-            if id == &room_id {
-                Some(name.clone())
-            } else {
-                None
-            }
-        });
-        if let Some(name) = dropped_name {
-            names.remove(&name);
-        }
-
-        self.player_rooms
-            .lock()
-            .await
-            .retain(|_, mapped_room_id| mapped_room_id != &room_id);
-
-        drop(names);
-        drop(rooms);
-        room.begin_close(reason.to_string()).await?;
-        self.metrics
-            .rooms_closed_total
-            .fetch_add(1, Ordering::Relaxed);
-        info!(room_id = room_id.as_str(), reason, "room force-closed");
-        Ok(())
-    }
-
-    pub async fn room_info(&self, room_ref: &str) -> Option<RoomInfo> {
-        let room = self.get_room_by_ref(room_ref).await?;
-        room.info().await
-    }
-
-    pub async fn rename_room(&self, room_ref: &str, new_name: String) -> Result<(), String> {
-        let rooms = self.rooms.write().await;
-        let mut names = self.names.write().await;
-
-        if names.contains_key(&new_name) {
-            return Err("room_name_already_exists".to_string());
-        }
-
-        let room_id =
-            Self::room_id_from_ref(&names, room_ref).ok_or_else(|| "room_not_found".to_string())?;
-        let room = rooms
-            .get(&room_id)
-            .cloned()
-            .ok_or_else(|| "room_not_found".to_string())?;
-
-        let old_name = names
-            .iter()
-            .find_map(|(name, id)| {
-                if id == &room_id {
-                    Some(name.clone())
-                } else {
-                    None
-                }
-            })
-            .ok_or_else(|| "room_not_found".to_string())?;
-
-        names.remove(&old_name);
-        names.insert(new_name.clone(), room_id);
-
-        drop(names);
-        drop(rooms);
-        room.rename(new_name);
-        Ok(())
-    }
-
-    pub async fn set_room_max_players(&self, room_ref: &str, n: usize) -> Result<(), String> {
-        if n == 0 || n > ROOM_MAX_PLAYERS_HARD_CAP {
-            return Err(format!(
-                "maxPlayers must be 1..={ROOM_MAX_PLAYERS_HARD_CAP}"
-            ));
-        }
-
-        let room = self
-            .get_room_by_ref(room_ref)
-            .await
-            .ok_or_else(|| "room_not_found".to_string())?;
-        room.set_max_players(n).await
-    }
-
-    pub async fn move_player(
-        &self,
-        player_id: PlayerId,
-        target_room_ref: &str,
-        username: String,
-        tx: mpsc::Sender<Bytes>,
-    ) -> Result<JoinSuccess, Bytes> {
-        let target_room = self
-            .get_room_by_ref(target_room_ref)
-            .await
-            .ok_or_else(|| Bytes::from(encode_join_rejected("room_not_found")))?;
-        self.join_room(player_id, username, target_room, tx).await
-    }
-
-    pub async fn kick(
-        &self,
-        room_ref: &str,
-        player_id: PlayerId,
-        reason: String,
-    ) -> Result<bool, String> {
-        let room = self
-            .get_room_by_ref(room_ref)
-            .await
-            .ok_or_else(|| "room_not_found".to_string())?;
-        Ok(room.kick(player_id, reason).await)
-    }
-
-    pub async fn current_rooms(&self) -> usize {
-        self.rooms.read().await.len()
-    }
-
+    #[cfg(test)]
     pub async fn current_players(&self) -> usize {
         self.player_rooms.lock().await.len()
     }
@@ -382,33 +172,15 @@ mod tests {
         RoomConfig {
             name: name.to_string(),
             max_players: max,
-            map_id: "dm2".to_string(),
-            mode: "deathmatch".to_string(),
             tick_rate: 60,
-            protocol_version: "1".to_string(),
-            region: None,
         }
-    }
-
-    #[tokio::test]
-    async fn create_list_and_close_room() {
-        let manager = RoomManager::new(Instant::now(), 50, 8);
-        let room = manager.create_room(config("alpha", 2), map()).await;
-        assert!(room.is_ok());
-
-        let rooms = manager.list_rooms().await;
-        assert_eq!(rooms.len(), 1);
-
-        let close_result = manager.close_room("alpha", "admin_close").await;
-        assert!(close_result.is_ok());
-        assert_eq!(manager.current_rooms().await, 0);
     }
 
     #[tokio::test]
     async fn join_until_full() {
         let manager = RoomManager::new(Instant::now(), 50, 8);
         let room = manager
-            .create_room(config("beta", 1), map())
+            .get_or_create_room(config("beta", 1), map())
             .await
             .expect("room create");
         let (tx1, _rx1) = mpsc::channel::<Bytes>(4);
@@ -428,7 +200,7 @@ mod tests {
     async fn concurrent_join_respects_capacity() {
         let manager = Arc::new(RoomManager::new(Instant::now(), 50, 8));
         let room = manager
-            .create_room(config("gamma", 2), map())
+            .get_or_create_room(config("gamma", 2), map())
             .await
             .expect("room create");
 
@@ -455,29 +227,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn leave_last_player_triggers_auto_close_flow() {
-        let manager = RoomManager::new(Instant::now(), 50, 8);
-        let room = manager
-            .create_room(config("delta", 2), map())
-            .await
-            .expect("room create");
-        let (tx, _rx) = mpsc::channel::<Bytes>(4);
-        let joined = manager
-            .join_room(PlayerId(7), "p7".to_string(), room, tx)
-            .await;
-        assert!(joined.is_ok());
-
-        manager.leave_player(PlayerId(7)).await;
-        tokio::task::yield_now().await;
-        let info = manager.room_info("delta").await.expect("room info");
-        assert_eq!(info.summary.status.as_str(), "closing");
-    }
-
-    #[tokio::test]
     async fn disconnect_cleanup_reuses_leave_path() {
         let manager = RoomManager::new(Instant::now(), 50, 8);
         let room = manager
-            .create_room(config("epsilon", 2), map())
+            .get_or_create_room(config("epsilon", 2), map())
             .await
             .expect("room create");
         let (tx, _rx) = mpsc::channel::<Bytes>(4);
@@ -494,11 +247,11 @@ mod tests {
     async fn moving_between_rooms_clears_old_membership() {
         let manager = RoomManager::new(Instant::now(), 50, 8);
         let room_a = manager
-            .create_room(config("a", 8), map())
+            .get_or_create_room(config("a", 8), map())
             .await
             .expect("room a");
         let room_b = manager
-            .create_room(config("b", 8), map())
+            .get_or_create_room(config("b", 8), map())
             .await
             .expect("room b");
 
