@@ -5,6 +5,9 @@ import tailwindcss from '@tailwindcss/vite'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
+    build: {
+        cssCodeSplit: false,
+    },
     plugins: [
         tsconfigPaths({ projects: ['./tsconfig.json'] }),
         tailwindcss(),
