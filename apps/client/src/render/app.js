@@ -1,5 +1,4 @@
 import * as PIXI from 'pixi.js'
-import { Assets } from 'pixi.js'
 import { Console } from '../core/helpers'
 
 export const app = await initApp()
@@ -32,26 +31,17 @@ world.addChild(bulletImpacts)
 world.addChild(gauntletSparks)
 
 async function initApp() {
-    // Diagnostic: check if WebGL stencil passes (same test Pixi's nf() runs internally)
-    const testCanvas = document.createElement('canvas')
-    const testCtx = testCanvas.getContext('webgl', { stencil: true })
-    const stencilOk = !!testCtx?.getContextAttributes()?.stencil
-    console.log('[PIXI] WebGL stencil check:', stencilOk, testCtx ? 'ctx ok' : 'no ctx')
-    if (testCtx) testCtx.getExtension('WEBGL_lose_context')?.loseContext()
-
-    // If stencil fails, Pixi's WebGL detection returns false and falls through to WebGPU.
-    // navigator.gpu.requestAdapter() hangs on HTTPS with no timeout — disable it.
-    if (!stencilOk && navigator.gpu) {
-        console.log('[PIXI] disabling WebGPU to prevent requestAdapter() hang')
+    // Pixi v8 bug: WebGL renderer init calls getSupportedCompressedTextureFormats() which
+    // unconditionally calls isWebGPUSupported() -> navigator.gpu.requestAdapter().
+    // On HTTPS, navigator.gpu exists and requestAdapter() hangs indefinitely with no timeout.
+    // On HTTP (localhost), navigator.gpu is undefined (requires secure context) -> skipped.
+    // Fix: disable navigator.gpu before init so Pixi skips the WebGPU path entirely.
+    if (navigator.gpu) {
         try { Object.defineProperty(navigator, 'gpu', { value: undefined, configurable: true }) } catch {}
     }
 
-    console.log('[PIXI] step 1: pre-init Assets (skip detections)')
-    await Assets.init({ skipDetections: true })
-    console.log('[PIXI] step 2: creating Application')
     const app = new PIXI.Application()
     try {
-        console.log('[PIXI] step 3: calling app.init', { innerWidth, innerHeight, dpr: devicePixelRatio })
         await app.init({
             width: innerWidth,
             height: innerHeight,
@@ -60,14 +50,11 @@ async function initApp() {
             resolution: Math.min(devicePixelRatio || 1, 2),
             preference: 'webgl',
         })
-        console.log('[PIXI] step 4: app.init done, renderer type:', app.renderer?.type)
     } catch (err) {
-        console.error('[PIXI] app.init FAILED:', err)
         Console.writeText(`renderer init failed: ${err?.message ?? err}`)
         throw err
     }
     app.canvas.style.display = 'block'
     document.getElementById('game').appendChild(app.canvas)
-    console.log('[PIXI] step 5: canvas attached to DOM')
     return app
 }

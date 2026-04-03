@@ -34,11 +34,9 @@ const ITEM_PATHS = {
 const textures = {}
 
 export async function loadAssets() {
-    console.log('[ASSETS] step 1: starting asset load')
     textures.brick = genBrickTexture()
     textures.explosion = genExplosionTexture()
     textures.smoke = genSmokeTexture()
-    console.log('[ASSETS] step 2: loading background')
     textures.background = await loadWithFallback(
         '/assets/backgrounds/bg_1.jpg',
         genBackgroundTexture,
@@ -50,17 +48,14 @@ export async function loadAssets() {
         bfg: genProjectileTexture('bfg'),
     }
 
-    console.log('[ASSETS] step 3: loading model animations')
     textures.modelAnimations = {}
     await loadModelAnimations(DEFAULT_MODEL, DEFAULT_SKIN)
     textures.player =
         getModelAnimationFrames(DEFAULT_MODEL, DEFAULT_SKIN, 'walk')[0] || genPlayerTexture()
 
-    console.log('[ASSETS] step 4: loading weapon/item icons')
     textures.weaponIcons = await loadIconMap(WEAPON_PATHS)
     textures.itemIcons = await loadIconMap(ITEM_PATHS)
 
-    console.log('[ASSETS] step 5: all assets loaded')
     return textures
 }
 
