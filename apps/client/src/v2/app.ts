@@ -9,6 +9,7 @@ await app.init({
     autoDensity: true,
     resolution: Math.min(devicePixelRatio || 1, 2),
     antialias: false,
+    preference: 'webgl',
 })
 
 app.canvas.style.display = 'block'

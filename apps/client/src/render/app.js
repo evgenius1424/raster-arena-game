@@ -39,6 +39,7 @@ async function initApp() {
             background: 0x262626,
             autoDensity: true,
             resolution: Math.min(devicePixelRatio || 1, 2),
+            preference: 'webgl',
         })
     } catch (err) {
         Console.writeText(`renderer init failed: ${err?.message ?? err}`)
