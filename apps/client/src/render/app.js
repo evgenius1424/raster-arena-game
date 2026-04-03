@@ -32,6 +32,20 @@ world.addChild(bulletImpacts)
 world.addChild(gauntletSparks)
 
 async function initApp() {
+    // Diagnostic: check if WebGL stencil passes (same test Pixi's nf() runs internally)
+    const testCanvas = document.createElement('canvas')
+    const testCtx = testCanvas.getContext('webgl', { stencil: true })
+    const stencilOk = !!testCtx?.getContextAttributes()?.stencil
+    console.log('[PIXI] WebGL stencil check:', stencilOk, testCtx ? 'ctx ok' : 'no ctx')
+    if (testCtx) testCtx.getExtension('WEBGL_lose_context')?.loseContext()
+
+    // If stencil fails, Pixi's WebGL detection returns false and falls through to WebGPU.
+    // navigator.gpu.requestAdapter() hangs on HTTPS with no timeout — disable it.
+    if (!stencilOk && navigator.gpu) {
+        console.log('[PIXI] disabling WebGPU to prevent requestAdapter() hang')
+        try { Object.defineProperty(navigator, 'gpu', { value: undefined, configurable: true }) } catch {}
+    }
+
     console.log('[PIXI] step 1: pre-init Assets (skip detections)')
     await Assets.init({ skipDetections: true })
     console.log('[PIXI] step 2: creating Application')
