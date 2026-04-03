@@ -7,6 +7,15 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 export default defineConfig({
     build: {
         cssCodeSplit: false,
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (id.includes('/pixi.js/') || id.includes('/pixi.js@')) {
+                        return 'pixi'
+                    }
+                },
+            },
+        },
     },
     plugins: [
         tsconfigPaths({ projects: ['./tsconfig.json'] }),
