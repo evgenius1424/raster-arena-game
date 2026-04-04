@@ -28,10 +28,7 @@ world.cullable = true
 export const hudLayer = new Container()
 hudLayer.zIndex = 100
 
-export const debugLayer = new Container()
-debugLayer.zIndex = 200
-
-app.stage.addChild(bgLayer, world, hudLayer, debugLayer)
+app.stage.addChild(bgLayer, world, hudLayer)
 
 export const bgDecorLayer = new Container()
 bgDecorLayer.zIndex = 10
@@ -61,6 +58,9 @@ beamLayer.zIndex = 75
 export const fgDecorLayer = new Container()
 fgDecorLayer.zIndex = 80
 
+export const debugLayer = new Container()
+debugLayer.zIndex = 90
+
 world.addChild(
     bgDecorLayer,
     tilesLayer,
@@ -71,6 +71,7 @@ world.addChild(
     fxLayer,
     beamLayer,
     fgDecorLayer,
+    debugLayer,
 )
 
 export function setCullArea(w: number, h: number): void {
