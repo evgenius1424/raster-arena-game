@@ -1,4 +1,4 @@
-import { Application, Container, Graphics } from 'pixi.js'
+import { Application, Container, Graphics, Rectangle } from 'pixi.js'
 import { BG_COLOR } from './constants'
 
 const app = new Application()
@@ -15,7 +15,6 @@ await app.init({
 app.canvas.style.display = 'block'
 document.getElementById('game')!.appendChild(app.canvas)
 
-// --- Stage-level layers ---
 app.stage.sortableChildren = true
 
 export const bgLayer = new Container()
@@ -24,13 +23,16 @@ bgLayer.zIndex = 0
 export const world = new Container()
 world.zIndex = 1
 world.sortableChildren = true
+world.cullable = true
 
 export const hudLayer = new Container()
 hudLayer.zIndex = 100
 
-app.stage.addChild(bgLayer, world, hudLayer)
+export const debugLayer = new Container()
+debugLayer.zIndex = 200
 
-// --- World child layers ---
+app.stage.addChild(bgLayer, world, hudLayer, debugLayer)
+
 export const bgDecorLayer = new Container()
 bgDecorLayer.zIndex = 10
 
@@ -48,6 +50,7 @@ projectilesLayer.zIndex = 50
 
 export const entitiesLayer = new Container()
 entitiesLayer.zIndex = 60
+entitiesLayer.cullable = true
 
 export const fxLayer = new Container()
 fxLayer.zIndex = 70
@@ -69,5 +72,9 @@ world.addChild(
     beamLayer,
     fgDecorLayer,
 )
+
+export function setCullArea(w: number, h: number): void {
+    world.cullArea = new Rectangle(0, 0, w, h)
+}
 
 export { app }
