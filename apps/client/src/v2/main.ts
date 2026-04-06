@@ -1,8 +1,6 @@
-import { Application, Graphics, Sprite } from 'pixi.js'
+import { Graphics, Sprite } from 'pixi.js'
 import { app, tilesLayer, entitiesLayer, world, debugLayer, setCullArea } from './app'
 import { Camera } from './camera'
-import { buildMapSprite } from './tiles'
-import { initBackground, updateBackground } from './background'
 import { Map } from '#/game/map'
 import { Player } from '#/game/player'
 import { Physics } from '#/game/physics'
@@ -32,10 +30,20 @@ setCullArea(mapPixelW, mapPixelH)
 const player = new Player()
 spawnPlayer()
 
-tilesLayer.addChild(buildMapSprite(app, rows, cols))
-tilesLayer.addChild(buildSpawnIndicators(app, rows, cols))
-
-initBackground(app, app.screen.width, app.screen.height, mapPixelW, mapPixelH)
+const mapGfx = new Graphics()
+for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+        if (!Map.isBrick(col, row)) continue
+        const color = Map.getTileColor(col, row) ?? 0x00ff88
+        mapGfx
+            .rect(col * TILE_W, row * TILE_H, TILE_W, TILE_H)
+            .fill({ color })
+            .stroke({ width: 1, color, alpha: 0.4 })
+    }
+}
+const mapTexture = app.renderer.generateTexture(mapGfx)
+tilesLayer.addChild(new Sprite(mapTexture))
+mapGfx.destroy()
 
 const sharedGfx = new Graphics()
 entitiesLayer.addChild(sharedGfx)
@@ -45,7 +53,6 @@ debugLayer.addChild(debugGfx)
 
 let lastMouseY = Input.mouseY
 let debugVisible = false
-let tick = 0
 
 document.getElementById('game')?.addEventListener('click', () => {
     const canvas = document.querySelector('#game canvas') as HTMLCanvasElement | null
@@ -61,7 +68,6 @@ document.addEventListener('keydown', (e) => {
 
 app.ticker.add((ticker) => {
     const timestamp = ticker.lastTime
-    tick++
 
     player.prevX = player.x
     player.prevY = player.y
@@ -87,7 +93,6 @@ app.ticker.add((ticker) => {
 
     camera.update(rx, ry, app.screen.width, app.screen.height, mapPixelW, mapPixelH, cols)
     camera.apply(world)
-    updateBackground(camera.x, camera.y, tick)
 
     if (debugVisible) drawDebug()
 })
@@ -181,18 +186,4 @@ function normalizeAngle(a: number): number {
     if (a > Math.PI) a -= Math.PI * 2
     if (a < -Math.PI) a += Math.PI * 2
     return a
-}
-
-function buildSpawnIndicators(app: Application, rows: number, cols: number): Sprite {
-    const gfx = new Graphics()
-    const spawns = Map.getRespawns()
-    for (const spawn of spawns) {
-        const cx = spawn.col * TILE_W + TILE_W / 2
-        const cy = spawn.row * TILE_H + TILE_H / 2
-        gfx.circle(cx, cy, 8).fill({ color: 0x00ff88, alpha: 0.04 })
-        gfx.circle(cx, cy, 4).fill({ color: 0x00ff88, alpha: 0.06 })
-    }
-    const tex = app.renderer.generateTexture(gfx)
-    gfx.destroy()
-    return new Sprite(tex)
 }
