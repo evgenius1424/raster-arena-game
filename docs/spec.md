@@ -42,31 +42,12 @@ spawnProtection, quadDamage          (ticks remaining)
 
 ## CONSTANTS REFERENCE
 
-`v2/constants.ts` is the single import point for all constants. Values marked **[WASM]** are read
-live from `getWasmModuleSync()` after `initWasm()` — do **not** hardcode them. Values marked
-**[render]** have no physics equivalent and live only in the renderer.
-
 ```
-── Physics [WASM] ─────────────────────────────────────────────────────────────
-TILE_W              get_tile_w()
-TILE_H              get_tile_h()
-PHYSICS_TICK_MS     get_tick_millis()
-SPAWN_OFFSET_X      get_spawn_offset_x()
-PLAYER_HALF_W       get_player_hitbox_half_w()
-PLAYER_HALF_H       get_player_half_h()
-PLAYER_FULL_W       PLAYER_HALF_W * 2            (derived)
-PLAYER_FULL_H       PLAYER_HALF_H * 2            (derived)
-HIT_RADIUS_ROCKET   get_hit_radius_rocket()
-HIT_RADIUS_GRENADE  get_hit_radius_grenade()
-HIT_RADIUS_PLASMA   get_hit_radius_plasma()
-HIT_RADIUS_BFG      get_hit_radius_bfg()
-
-── Physics [hardcoded — not yet in WASM getters] ──────────────────────────────
-CROUCH_HALF_W = 8   CROUCH_HALF_H = 8            keep in sync with Rust constants.rs
-CROUCH_FULL_W = 16  CROUCH_FULL_H = 16           (derived)
-
-── Renderer-only [render] ─────────────────────────────────────────────────────
-BG_COLOR = 0x0a0a14
+TILE_W = 32              TILE_H = 16
+PLAYER_HALF_W = 9        PLAYER_HALF_H = 24       (physics body standing)
+PLAYER_FULL_W = 18       PLAYER_FULL_H = 48
+CROUCH_HALF_W = 8        CROUCH_HALF_H = 8
+CROUCH_FULL_W = 16       CROUCH_FULL_H = 16
 
 PLAYER_SCALE_X = 0.667   PLAYER_SCALE_Y = 1.0
 WEAPON_SCALE = 0.85
@@ -76,9 +57,14 @@ CROUCH_Y_OFFSET = 8      CROUCH_WEAPON_Y_OFFSET = 4
 Sprite frame: 48×48 (standing), 48×32 (crouch)
 Rendered: 30×48 standing, 33×33 crouching
 
-Projectile visual sizes: Rocket 16×8, Grenade 12×12, Plasma 12×12, BFG 24×24
+Projectile sizes: Rocket 16×8, Grenade 12×12, Plasma 12×12, BFG 24×24
+Projectile hit radii: Rocket 28, Grenade 16, Plasma 20, BFG 28
 Explosion visual: Large 40px / Small 15px, both 15-tick lifetime
 Smoke: Rocket every 4 ticks, Grenade every 6 ticks
+
+Weapon ranges: Gauntlet 13px, Shaft 96px, Shotgun 800px, MG 1000px, Rail 2000px
+Projectile speeds (px/tick): Rocket 7.0, Grenade 5.25, Plasma 8.0, BFG 8.0
+Fire rates (ticks): Shaft 3, MG 5, Plasma 5, BFG 10, Gauntlet 20, GL 40, RL 40, SG 50, Rail 75
 ```
 
 ---
