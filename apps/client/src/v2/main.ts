@@ -175,10 +175,12 @@ function drawPlayer(
 function drawDebug(): void {
     debugGfx.clear()
     wasm.wasm_player_hitbox(player.x, player.y, player.crouch, 0, hitboxScratch)
+    const sx = (wx: number) => camera.x + wx * camera.zoom
+    const sy = (wy: number) => camera.y + wy * camera.zoom
     debugGfx
-        .rect(hitboxScratch[0], hitboxScratch[2], hitboxScratch[1] - hitboxScratch[0], hitboxScratch[3] - hitboxScratch[2])
+        .rect(sx(hitboxScratch[0]), sy(hitboxScratch[2]), (hitboxScratch[1] - hitboxScratch[0]) * camera.zoom, (hitboxScratch[3] - hitboxScratch[2]) * camera.zoom)
         .stroke({ width: 1, color: 0xff0000, alpha: 0.8 })
-    debugGfx.circle(player.x, player.y, 3).fill({ color: 0xff0000 })
+    debugGfx.circle(sx(player.x), sy(player.y), 3).fill({ color: 0xff0000 })
 }
 
 function normalizeAngle(a: number): number {
