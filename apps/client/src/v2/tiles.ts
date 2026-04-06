@@ -2,18 +2,15 @@ import { Application, Container, Graphics, Sprite, Texture } from 'pixi.js'
 import { Map as GameMap } from '#/game/map'
 import { TILE_W, TILE_H } from './constants'
 
-const BODY_TOP_R = 56, BODY_TOP_G = 56, BODY_TOP_B = 74
-const BODY_BOT_R = 26, BODY_BOT_G = 26, BODY_BOT_B = 36
-
-const EDGE_BOTTOM = 0x1a1a2c
-const EDGE_RIGHT  = 0x1e1e30
-const EDGE_LEFT   = 0x404058
-const SEAM_COLOR  = 0x2e2e42
-
-const GLOW_SPREAD = 6
+const BODY_DARK    = 0x1e1e2e
+const BODY_MID     = 0x2a2a3e
+const SHADOW_DEEP  = 0x0a0a14
+const PANEL_LINE   = 0x222236
 
 const DEFAULT_GLOW = 0x00ff88
 const DEFAULT_CORE = 0x88ffcc
+
+const CRACK_OFFSETS = [0, -2, 1, -1]
 
 const atlasCache = new Map<number, Texture[]>()
 
@@ -55,7 +52,6 @@ export function buildMapSprite(app: Application, rows: number, cols: number): Sp
     }
 
     const bakedTexture = app.renderer.generateTexture(container)
-    bakedTexture.source.scaleMode = 'nearest'
     const result = new Sprite(bakedTexture)
     container.destroy({ children: true })
     return result
@@ -89,9 +85,7 @@ function generateAtlas(app: Application, glow: number): Texture[] {
     for (let mask = 0; mask < 16; mask++) {
         g.clear()
         drawTileVariant(g, mask, glow, core)
-        const tex = app.renderer.generateTexture(g)
-        tex.source.scaleMode = 'nearest'
-        atlas.push(tex)
+        atlas.push(app.renderer.generateTexture(g))
     }
 
     g.destroy()
@@ -104,48 +98,58 @@ function drawTileVariant(g: Graphics, mask: number, glow: number, core: number):
     const noBottom = (mask & 4) === 0
     const noLeft   = (mask & 8) === 0
 
-    for (let row = 0; row < TILE_H; row++) {
-        const t = row / (TILE_H - 1)
-        const color = lerpRGB(BODY_TOP_R, BODY_TOP_G, BODY_TOP_B, BODY_BOT_R, BODY_BOT_G, BODY_BOT_B, t)
-        g.rect(0, row, TILE_W, 1).fill({ color })
-    }
-
-    g.rect(0, 0,              TILE_W, 1).fill({ color: noTop    ? lerpRGB(BODY_TOP_R, BODY_TOP_G, BODY_TOP_B, BODY_BOT_R, BODY_BOT_G, BODY_BOT_B, 0) : SEAM_COLOR })
-    g.rect(0, TILE_H - 1,     TILE_W, 1).fill({ color: noBottom ? EDGE_BOTTOM : SEAM_COLOR })
-    g.rect(TILE_W - 1, 0,     1, TILE_H).fill({ color: noRight  ? EDGE_RIGHT : SEAM_COLOR })
-    g.rect(0, 0,              1, TILE_H).fill({ color: noLeft   ? EDGE_LEFT  : SEAM_COLOR })
-
+    g.rect(0, 0, TILE_W, TILE_H).fill({ color: BODY_DARK })
     if (noTop) {
-        for (let row = 0; row < GLOW_SPREAD; row++) {
-            const t = row / (GLOW_SPREAD - 1)
-            const falloff = Math.pow(1 - t, 2.2)
-            if (row === 0) {
-                g.rect(0, row, TILE_W, 1).fill({ color: core, alpha: falloff * 0.95 })
-            } else {
-                g.rect(0, row, TILE_W, 1).fill({ color: glow, alpha: falloff * 0.6 })
-            }
-        }
+        g.rect(1, 1, TILE_W - 2, 4).fill({ color: BODY_MID })
+    } else {
+        g.rect(1, 1, TILE_W - 2, 3).fill({ color: BODY_MID, alpha: 0.5 })
     }
 
+    // Step 4 — platform lip (exposed top)
+    if (noTop) {
+        g.rect(0, 0, TILE_W, 4).fill({ color: glow, alpha: 0.3 })
+        g.rect(0, 0, TILE_W, 2).fill({ color: glow, alpha: 0.6 })
+        g.rect(0, 0, TILE_W, 1).fill({ color: core, alpha: 0.95 })
+    }
+
+    // Step 5 — side edges
     if (noLeft) {
-        for (let col = 0; col < 3; col++) {
-            const t = col / 2
-            const a = Math.pow(1 - t, 2.0) * 0.4
-            g.rect(col, 0, 1, TILE_H).fill({ color: glow, alpha: a })
-        }
+        g.rect(0, 0, 2, TILE_H).fill({ color: glow, alpha: 0.12 })
+        g.rect(0, 0, 1, TILE_H).fill({ color: glow, alpha: 0.4 })
+    }
+    if (noRight) {
+        g.rect(TILE_W - 1, 0, 1, TILE_H).fill({ color: SHADOW_DEEP, alpha: 0.7 })
+    }
+    if (noBottom) {
+        g.rect(0, TILE_H - 2, TILE_W, 2).fill({ color: SHADOW_DEEP, alpha: 0.5 })
+        g.rect(0, TILE_H - 1, TILE_W, 1).fill({ color: SHADOW_DEEP, alpha: 0.8 })
     }
 
-    if (noTop && noLeft) {
-        g.rect(0, 0, 2, 2).fill({ color: core, alpha: 0.5 })
-    }
-
-    if (noTop && noRight) {
-        g.rect(TILE_W - 2, 0, 2, 2).fill({ color: core, alpha: 0.3 })
-    }
+    // Step 6 — corner intersections
+    if (noTop && noLeft)    g.rect(0, 0, 3, 3).fill({ color: core, alpha: 0.6 })
+    if (noTop && noRight)   g.rect(TILE_W - 3, 0, 3, 3).fill({ color: core, alpha: 0.35 })
+    if (noBottom && noRight) g.rect(TILE_W - 2, TILE_H - 2, 2, 2).fill({ color: SHADOW_DEEP, alpha: 0.5 })
+    if (noBottom && noLeft)  g.rect(0, TILE_H - 2, 2, 2).fill({ color: SHADOW_DEEP, alpha: 0.3 })
 
     if (mask === 15) {
-        g.rect(TILE_W / 2, 0, 1, TILE_H).fill({ color: SEAM_COLOR })
-        g.rect(0, TILE_H / 2, TILE_W, 1).fill({ color: SEAM_COLOR })
+        g.rect(Math.round(TILE_W / 2), 0, 1, TILE_H).fill({ color: PANEL_LINE, alpha: 0.03 })
+        g.rect(0, Math.round(TILE_H / 2), TILE_W, 1).fill({ color: PANEL_LINE, alpha: 0.03 })
+    }
+
+    // Step 8 — crack decal (exposed top and bottom only)
+    if (mask === 5) {
+        const segH = TILE_H / 4
+        const cx = TILE_W / 2
+        for (let i = 0; i < 4; i++) {
+            const x = cx + CRACK_OFFSETS[i]
+            g.moveTo(x, i * segH).lineTo(x, (i + 1) * segH)
+                .stroke({ width: 1, color: SHADOW_DEEP, alpha: 0.7 })
+        }
+    }
+
+    // Step 9 — ceiling underside accent (solid above, exposed below)
+    if (noBottom && !noTop) {
+        g.rect(0, TILE_H - 1, TILE_W, 1).fill({ color: glow, alpha: 0.08 })
     }
 }
 
@@ -156,15 +160,4 @@ function blendToWhite(color: number, t: number): number {
     return (Math.round(r + (255 - r) * t) << 16)
         | (Math.round(g + (255 - g) * t) << 8)
         | Math.round(b + (255 - b) * t)
-}
-
-function lerpRGB(
-    r1: number, g1: number, b1: number,
-    r2: number, g2: number, b2: number,
-    t: number,
-): number {
-    const r = Math.round(r1 + (r2 - r1) * t)
-    const g = Math.round(g1 + (g2 - g1) * t)
-    const b = Math.round(b1 + (b2 - b1) * t)
-    return (r << 16) | (g << 8) | b
 }
