@@ -1,5 +1,4 @@
 import * as PIXI from 'pixi.js'
-import { Assets } from 'pixi.js'
 import { Console } from '../core/helpers'
 
 export const app = await initApp()
@@ -32,23 +31,18 @@ world.addChild(bulletImpacts)
 world.addChild(gauntletSparks)
 
 async function initApp() {
-    // Disable WebGPU detection — navigator.gpu.requestAdapter() hangs indefinitely
-    // on HTTPS in Chrome/Firefox with no timeout. Patch the prototype so it affects
-    // all code paths including pixi internals.
+    // Pixi v8 bug: even when preference:'webgl', Pixi internally calls isWebGPUSupported()
+    // -> navigator.gpu.requestAdapter() which hangs indefinitely on HTTPS (no timeout).
+    // On HTTP, navigator.gpu is undefined (secure context required), so it's skipped.
+    // Fix: patch Navigator.prototype so navigator.gpu returns undefined before Pixi init.
     try {
         Object.defineProperty(Navigator.prototype, 'gpu', { get: () => undefined, configurable: true })
     } catch {}
 
     console.log('[PIXI] gpu disabled:', !navigator.gpu)
-
-    // Skip compressed-texture format detections (they call isWebGPUSupported internally)
-    await Assets.init({ skipDetections: true })
-    console.log('[PIXI] Assets.init done')
-
-    const app = new PIXI.Application()
-
     console.log('[PIXI] calling app.init')
 
+    const app = new PIXI.Application()
     const initPromise = app.init({
         width: innerWidth,
         height: innerHeight,
@@ -58,11 +52,9 @@ async function initApp() {
         preference: 'webgl',
         skipExtensionImports: true,
     })
-
     const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Pixi init timeout after 8s')), 8000)
+        setTimeout(() => reject(new Error('Pixi init timeout after 5s')), 5000)
     )
-
     try {
         await Promise.race([initPromise, timeout])
         console.log('[PIXI] app.init done, renderer:', app.renderer?.type)
@@ -71,9 +63,7 @@ async function initApp() {
         Console.writeText(`renderer init failed: ${err?.message ?? err}`)
         throw err
     }
-
     app.canvas.style.display = 'block'
-    document.getElementById('game')?.appendChild(app.canvas)
-
+    document.getElementById('game').appendChild(app.canvas)
     return app
 }
