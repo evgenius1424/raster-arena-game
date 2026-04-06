@@ -62,6 +62,7 @@ export const Map = {
         const { respawns } = state
         return respawns[(Math.random() * respawns.length) | 0]
     },
+    getRespawns: () => state.respawns,
     setItemStates(itemStates) {
         if (!Array.isArray(itemStates) || itemStates.length !== state.items.length) return
         for (let i = 0; i < state.items.length; i++) {
