@@ -5,7 +5,12 @@ import { Player } from '#/game/player'
 import { Physics } from '#/game/physics'
 import { Input, Settings } from '#/core/helpers'
 import { getWasmModuleSync } from '#/wasm/client'
-import { TILE_W, TILE_H, PLAYER_HALF_H, SPAWN_OFFSET_X } from './constants'
+import {
+    TILE_W,
+    TILE_H,
+    PLAYER_HALF_H,
+    SPAWN_OFFSET_X,
+} from './constants'
 
 const AIM_INPUT_SCALE = 0.5
 const MAX_AIM_DELTA = 12
@@ -101,16 +106,8 @@ function processMovement() {
 
 function processAim() {
     const rawDelta = Input.pointerLocked
-        ? (() => {
-              const d = Input.mouseDeltaY
-              Input.mouseDeltaY = 0
-              return d
-          })()
-        : (() => {
-              const d = Input.mouseY - lastMouseY
-              lastMouseY = Input.mouseY
-              return d
-          })()
+        ? (() => { const d = Input.mouseDeltaY; Input.mouseDeltaY = 0; return d })()
+        : (() => { const d = Input.mouseY - lastMouseY; lastMouseY = Input.mouseY; return d })()
 
     if (rawDelta !== 0) {
         const capped = Math.max(-MAX_AIM_DELTA, Math.min(MAX_AIM_DELTA, rawDelta))
@@ -151,7 +148,9 @@ function drawPlayer(rx: number, ry: number, ra: number) {
     }
 
     // Wireframe rect = exact physics hitbox
-    playerGfx.rect(minX, minY, maxX - minX, maxY - minY).stroke({ width: 1, color: PLAYER_COLOR })
+    playerGfx
+        .rect(minX, minY, maxX - minX, maxY - minY)
+        .stroke({ width: 1, color: PLAYER_COLOR })
 
     playerGfx
         .moveTo(rx, ry)
@@ -159,28 +158,19 @@ function drawPlayer(rx: number, ry: number, ra: number) {
         .stroke({ width: 1, color: PLAYER_COLOR, alpha: 0.3 })
 }
 
-// Fixed zoom for large (scrolling) maps: always shows 28 tiles across
-const TILES_VISIBLE_X = 28
-const CAMERA_ZOOM = app.screen.width / (TILES_VISIBLE_X * TILE_W)
-
 function updateCamera(rx: number, ry: number) {
     const cw = app.screen.width
     const ch = app.screen.height
 
-    if (cols <= TILES_VISIBLE_X) {
-        // Small map: scale to fit the viewport entirely, center, cap at CAMERA_ZOOM
-        const zoom = Math.min(cw / mapPixelW, ch / mapPixelH, CAMERA_ZOOM)
-        world.scale.set(zoom)
-        world.x = (cw - mapPixelW * zoom) / 2
-        world.y = (ch - mapPixelH * zoom) / 2
+    if (mapPixelW <= cw && mapPixelH <= ch) {
+        const scale = Math.min(cw / mapPixelW, ch / mapPixelH, 1.6)
+        world.scale.set(scale)
+        world.x = (cw - mapPixelW * scale) / 2
+        world.y = (ch - mapPixelH * scale) / 2
     } else {
-        // Large map: fixed zoom, track player, clamp to map edges
-        const sw = mapPixelW * CAMERA_ZOOM
-        const sh = mapPixelH * CAMERA_ZOOM
-        world.scale.set(CAMERA_ZOOM)
-        world.x = Math.min(0, Math.max(cw - sw, cw / 2 - rx * CAMERA_ZOOM))
-        world.y =
-            sh > ch ? Math.min(0, Math.max(ch - sh, ch / 2 - ry * CAMERA_ZOOM)) : (ch - sh) / 2
+        world.scale.set(1)
+        world.x = Math.min(0, Math.max(cw - mapPixelW, cw / 2 - rx))
+        world.y = Math.min(0, Math.max(ch - mapPixelH, ch / 2 - ry))
     }
 }
 
