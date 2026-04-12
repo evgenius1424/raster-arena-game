@@ -33,8 +33,8 @@ function GamePage() {
         if (nickname) window.__GAME_NICKNAME = nickname
         if (bots) window.__GAME_BOTS = bots
 
-        import('../app/bootstrap.js').catch(console.error)
-        // import('../app/bootstrap-v2.ts').catch(console.error)
+        // import('../app/bootstrap.js').catch(console.error)
+        import('../app/bootstrap-v2.ts').catch(console.error)
     }, [])
 
     return (
