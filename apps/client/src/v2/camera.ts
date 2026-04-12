@@ -1,13 +1,14 @@
 import { Container } from 'pixi.js'
-import { TILE_W } from './constants'
 
-const TILES_VISIBLE_X = 28
+const MAX_ZOOM = 1.6
 
 export class Camera {
     x = 0
     y = 0
     zoom = 1
-    trauma = 0
+    private floating = false
+    private halfW = 0
+    private halfH = 0
 
     update(
         targetX: number,
@@ -16,23 +17,24 @@ export class Camera {
         screenH: number,
         mapPixelW: number,
         mapPixelH: number,
-        cols: number,
+        _cols: number,
     ): void {
-        const baseZoom = screenW / (TILES_VISIBLE_X * TILE_W)
+        const fitZoom = Math.min(screenW / mapPixelW, screenH / mapPixelH, MAX_ZOOM)
+        const scaledW = mapPixelW * fitZoom
+        const scaledH = mapPixelH * fitZoom
 
-        if (cols <= TILES_VISIBLE_X) {
-            const zoom = Math.min(screenW / mapPixelW, screenH / mapPixelH, baseZoom)
-            this.zoom = zoom
-            this.x = (screenW - mapPixelW * zoom) / 2
-            this.y = (screenH - mapPixelH * zoom) / 2
+        this.floating = scaledW > screenW || scaledH > screenH
+
+        if (this.floating) {
+            this.zoom = fitZoom
+            this.halfW = (screenW / 2) | 0
+            this.halfH = (screenH / 2) | 0
+            this.x = clamp(this.halfW - targetX * this.zoom, screenW - scaledW, 0)
+            this.y = clamp(this.halfH - targetY * this.zoom, screenH - scaledH, 0)
         } else {
-            const sw = mapPixelW * baseZoom
-            const sh = mapPixelH * baseZoom
-            this.zoom = baseZoom
-            this.x = Math.min(0, Math.max(screenW - sw, screenW / 2 - targetX * baseZoom))
-            this.y = sh > screenH
-                ? Math.min(0, Math.max(screenH - sh, screenH / 2 - targetY * baseZoom))
-                : (screenH - sh) / 2
+            this.zoom = fitZoom
+            this.x = ((screenW - scaledW) / 2) | 0
+            this.y = ((screenH - scaledH) / 2) | 0
         }
     }
 
@@ -41,4 +43,8 @@ export class Camera {
         world.x = this.x
         world.y = this.y
     }
+}
+
+function clamp(v: number, min: number, max: number): number {
+    return v < min ? min : v > max ? max : v
 }
